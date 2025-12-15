@@ -1,0 +1,194 @@
+# API Reference
+
+This page provides detailed documentation for all exported functions in MultiGridBarrierMPI.jl.
+
+!!! note "All Functions Are Collective"
+    All functions documented here are **MPI collective operations**. Every MPI rank must call these functions together with the same parameters. Failure to do so will result in deadlock.
+
+## Initialization
+
+This function initializes the module (optional, called automatically on first use).
+
+```@docs
+Init
+```
+
+## High-Level API
+
+These functions provide the simplest interface for solving problems with MPI types.
+
+### 1D Problems
+
+```@docs
+fem1d_mpi
+fem1d_mpi_solve
+```
+
+### 2D Problems
+
+```@docs
+fem2d_mpi
+fem2d_mpi_solve
+```
+
+### 3D Problems
+
+```@docs
+fem3d_mpi
+fem3d_mpi_solve
+```
+
+## Type Conversion API
+
+These functions convert between native Julia types and MPI distributed types.
+The `mpi_to_native` function dispatches on type, handling `Geometry`, `AMGBSOL`, and `ParabolicSOL` objects.
+
+```@docs
+native_to_mpi
+mpi_to_native
+```
+
+## Type Mappings Reference
+
+### Native to MPI Conversions
+
+When converting from native Julia types to MPI distributed types:
+
+| Native Type | MPI Type | Usage |
+|-------------|----------|-------|
+| `Matrix{T}` | `MatrixMPI{T}` | Geometry coordinates, dense data |
+| `Vector{T}` | `VectorMPI{T}` | Weights, dense vectors |
+| `SparseMatrixCSC{T,Int}` | `SparseMatrixMPI{T}` | Sparse operators, subspace matrices |
+
+### MPI to Native Conversions
+
+When converting from MPI distributed types back to native Julia types:
+
+| MPI Type | Native Type |
+|----------|-------------|
+| `MatrixMPI{T}` | `Matrix{T}` |
+| `VectorMPI{T}` | `Vector{T}` |
+| `SparseMatrixMPI{T}` | `SparseMatrixCSC{T,Int}` |
+
+## Geometry Structure
+
+The `Geometry` type from MultiGridBarrier is parameterized by its storage types:
+
+**Native Geometry:**
+```julia
+Geometry{T, Matrix{T}, Vector{T}, SparseMatrixCSC{T,Int}, Discretization}
+```
+
+**MPI Geometry:**
+```julia
+Geometry{T, MatrixMPI{T}, VectorMPI{T}, SparseMatrixMPI{T}, Discretization}
+```
+
+### Fields
+
+- **`discretization`**: Discretization information (domain, mesh, etc.)
+- **`x`**: Geometry coordinates (Matrix or MatrixMPI)
+- **`w`**: Quadrature weights (Vector or VectorMPI)
+- **`operators`**: Dictionary of operators (id, dx, dy, etc.)
+- **`subspaces`**: Dictionary of subspace projection matrices
+- **`refine`**: Vector of refinement matrices (coarse -> fine)
+- **`coarsen`**: Vector of coarsening matrices (fine -> coarse)
+
+## Solution Structure
+
+The `AMGBSOL` type from MultiGridBarrier contains the complete solution:
+
+### Fields
+
+- **`z`**: Solution matrix/vector
+- **`SOL_feasibility`**: NamedTuple with feasibility phase information
+- **`SOL_main`**: NamedTuple with main solve information
+  - `t_elapsed`: Elapsed solve time in seconds
+  - `ts`: Barrier parameter values
+  - `its`: Iterations per level
+  - `c_dot_Dz`: Convergence measure values
+- **`log`**: Vector of iteration logs
+- **`geometry`**: The geometry used for solving
+
+## MPI and IO Utilities
+
+### LinearAlgebraMPI.io0()
+
+Returns an IO stream that only writes on rank 0:
+
+```julia
+using LinearAlgebraMPI
+
+println(io0(), "This prints once from rank 0")
+```
+
+### MPI Rank Information
+
+```julia
+using MPI
+
+rank = MPI.Comm_rank(MPI.COMM_WORLD)  # Current rank (0 to nranks-1)
+nranks = MPI.Comm_size(MPI.COMM_WORLD)  # Total number of ranks
+```
+
+## Examples
+
+### Type Conversion Round-Trip
+
+```julia
+using MPI
+MPI.Init()
+
+using MultiGridBarrierMPI
+using LinearAlgebraMPI
+using MultiGridBarrier
+using LinearAlgebra
+
+# Create native geometry
+g_native = fem2d(; maxh=0.3)
+
+# Convert to MPI
+g_mpi = native_to_mpi(g_native)
+
+# Solve with MPI types
+sol_mpi = amgb(g_mpi; p=2.0)
+
+# Convert back to native
+sol_native = mpi_to_native(sol_mpi)
+g_back = mpi_to_native(g_mpi)
+
+# Verify round-trip accuracy
+@assert norm(g_native.x - g_back.x) < 1e-10
+@assert norm(g_native.w - g_back.w) < 1e-10
+```
+
+### Accessing Operator Matrices
+
+```julia
+# Native geometry
+g_native = fem2d(; maxh=0.2)
+id_native = g_native.operators[:id]  # SparseMatrixCSC
+
+# MPI geometry
+g_mpi = native_to_mpi(g_native)
+id_mpi = g_mpi.operators[:id]  # SparseMatrixMPI
+
+# Convert back if needed
+id_back = SparseMatrixCSC(id_mpi)  # SparseMatrixCSC
+```
+
+## Integration with MultiGridBarrier
+
+All MultiGridBarrier functions work seamlessly with MPI types:
+
+```julia
+using MultiGridBarrier: amgb
+
+# Create MPI geometry
+g = fem2d_mpi(Float64; L=3)
+
+# Use MultiGridBarrier functions directly
+sol = amgb(g; p=1.0, verbose=true)
+```
+
+The package extends MultiGridBarrier's internal API (`amgb_zeros`, `amgb_diag`, `amgb_blockdiag`, `map_rows`, etc.) to work with MPI types automatically.

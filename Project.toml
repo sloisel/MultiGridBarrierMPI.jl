@@ -1,0 +1,25 @@
+name = "MultiGridBarrierMPI"
+uuid = "abf18f27-d12f-4566-94ed-07bf0c385f70"
+authors = ["S. Loisel"]
+version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LinearAlgebraMPI = "5bdd2be4-ae34-42ef-8b36-f4c85d48f377"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+MultiGridBarrier = "9e2c1f1d-9131-4ad4-b32f-bd2a0b0ecd1e"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
+[sources]
+LinearAlgebraMPI = {path = "/Users/sebastienloisel/Dropbox/2023/Spectral Barrier Method/julia/LinearAlgebraMPI.jl"}
+MultiGridBarrier = {path = "/Users/sebastienloisel/Dropbox/2023/Spectral Barrier Method/julia/MultiGridBarrier.jl"}
+
+[compat]
+MPI = "0.20"
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

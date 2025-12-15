@@ -1,0 +1,11 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
+LinearAlgebraMPI = "e1240d02-71f4-4078-88e2-d9e3de2cb59c"
+MultiGridBarrier = "9e2c1f1d-9131-4ad4-b32f-bd2a0b0ecd1e"
+MultiGridBarrierMPI = "c3b87fba-1e4c-4e3e-8b5a-2e7f8c5e3a1d"
+
+[sources]
+LinearAlgebraMPI = {path = "/Users/sebastienloisel/Library/CloudStorage/Dropbox/2023/Spectral Barrier Method/julia/LinearAlgebraMPI.jl"}
+MultiGridBarrier = {path = "/Users/sebastienloisel/Library/CloudStorage/Dropbox/2023/Spectral Barrier Method/julia/MultiGridBarrier.jl"}
+MultiGridBarrierMPI = {path = "/Users/sebastienloisel/Library/CloudStorage/Dropbox/2023/Spectral Barrier Method/julia/MultiGridBarrierMPI.jl"}

@@ -1,0 +1,128 @@
+using Test
+using MPI
+
+# Initialize MPI first
+if !MPI.Initialized()
+    MPI.Init()
+end
+
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
+
+using LinearAlgebraMPI
+using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using LinearAlgebra
+using SparseArrays
+using MultiGridBarrier
+
+comm = MPI.COMM_WORLD
+rank = MPI.Comm_rank(comm)
+nranks = MPI.Comm_size(comm)
+
+if rank == 0
+    println("[DEBUG] Testing map_rows function")
+    flush(stdout)
+end
+
+# Test 1: Simple scalar function on VectorMPI
+n = 8
+v_native = collect(Float64, 1:n)
+v_mpi = VectorMPI(v_native)
+
+result_mpi = MultiGridBarrier.map_rows(x -> x[1]^2, v_mpi)
+result_native = Vector(result_mpi)
+expected = v_native .^ 2
+
+if rank == 0
+    println("[DEBUG] Test 1: Scalar function")
+    println("[DEBUG] Input: $v_native")
+    println("[DEBUG] Expected: $expected")
+    println("[DEBUG] Got: $result_native")
+    println("[DEBUG] Match: $(result_native ≈ expected)")
+    flush(stdout)
+end
+
+@test result_native ≈ expected
+
+# Test 2: Function on two VectorMPIs
+w_native = collect(Float64, n:-1:1)
+w_mpi = VectorMPI(w_native)
+
+result2_mpi = MultiGridBarrier.map_rows((x, y) -> x[1] * y[1], v_mpi, w_mpi)
+result2_native = Vector(result2_mpi)
+expected2 = v_native .* w_native
+
+if rank == 0
+    println("[DEBUG] Test 2: Function on two vectors")
+    println("[DEBUG] v: $v_native")
+    println("[DEBUG] w: $w_native")
+    println("[DEBUG] Expected: $expected2")
+    println("[DEBUG] Got: $result2_native")
+    println("[DEBUG] Match: $(result2_native ≈ expected2)")
+    flush(stdout)
+end
+
+@test result2_native ≈ expected2
+
+# Test 3: Function returning row vector -> MatrixMPI
+result3_mpi = MultiGridBarrier.map_rows(x -> [x[1], x[1]^2, x[1]^3]', v_mpi)
+result3_native = Matrix(result3_mpi)
+expected3 = hcat(v_native, v_native.^2, v_native.^3)
+
+if rank == 0
+    println("[DEBUG] Test 3: Row vector output")
+    println("[DEBUG] Expected:")
+    println(expected3)
+    println("[DEBUG] Got:")
+    println(result3_native)
+    println("[DEBUG] Match: $(result3_native ≈ expected3)")
+    flush(stdout)
+end
+
+@test result3_native ≈ expected3
+
+# Test 4: Function on MatrixMPI
+m_native = reshape(collect(Float64, 1:16), 8, 2)
+m_mpi = MatrixMPI(m_native)
+
+result4_mpi = MultiGridBarrier.map_rows(x -> sum(x)^2, m_mpi)
+result4_native = Vector(result4_mpi)
+expected4 = [sum(m_native[i,:])^2 for i in 1:8]
+
+if rank == 0
+    println("[DEBUG] Test 4: Function on MatrixMPI")
+    println("[DEBUG] Input matrix:")
+    println(m_native)
+    println("[DEBUG] Expected: $expected4")
+    println("[DEBUG] Got: $result4_native")
+    println("[DEBUG] Match: $(result4_native ≈ expected4)")
+    flush(stdout)
+end
+
+@test result4_native ≈ expected4
+
+# Test 5: Function on SparseMatrixMPI transpose (R')
+# This is the critical case from AlgebraicMultiGridBarrier.jl line 551
+s_native = sparse([1.0 2.0; 3.0 4.0; 5.0 6.0; 7.0 8.0])  # 4x2
+s_mpi = SparseMatrixMPI{Float64}(s_native)
+
+# Test with transpose (R')
+result5_mpi = MultiGridBarrier.map_rows(k -> Float64(0), s_mpi')
+result5_native = Vector(result5_mpi)
+expected5 = zeros(2)  # R' has 2 rows (transpose of 4x2)
+
+if rank == 0
+    println("[DEBUG] Test 5: Function on transpose of SparseMatrixMPI")
+    println("[DEBUG] R has size $(size(s_native)), R' has size $(size(s_native'))")
+    println("[DEBUG] Expected: $expected5")
+    println("[DEBUG] Got: $result5_native")
+    println("[DEBUG] Match: $(result5_native ≈ expected5)")
+    flush(stdout)
+end
+
+@test result5_native ≈ expected5
+
+if rank == 0
+    println("[DEBUG] All map_rows tests completed successfully")
+    flush(stdout)
+end
