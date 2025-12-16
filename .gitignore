@@ -1,0 +1,21 @@
+# Julia package manifest
+Manifest.toml
+
+# Coverage files
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+
+# Documenter build output
+/docs/build/
+/docs/site/
+
+# macOS
+.DS_Store
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
