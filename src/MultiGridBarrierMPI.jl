@@ -48,6 +48,7 @@ using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
 using MultiGridBarrier: Geometry, AMGBSOL, ParabolicSOL, fem1d, FEM1D, fem3d, FEM3D
+using PrecompileTools
 
 # ============================================================================
 # MultiGridBarrier API Implementation for LinearAlgebraMPI Types
@@ -845,5 +846,22 @@ export fem1d_mpi, fem1d_mpi_solve
 export fem2d_mpi, fem2d_mpi_solve
 export fem3d_mpi, fem3d_mpi_solve
 export native_to_mpi, mpi_to_native
+
+# ============================================================================
+# Precompilation Workload
+# ============================================================================
+
+@compile_workload begin
+    # Initialize MPI if needed
+    if !MPI.Initialized()
+        MPI.Init()
+    end
+    Init()
+
+    # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
+    fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
+    fem2d_mpi_solve(; L=1, tol=0.1, verbose=false)
+    fem3d_mpi_solve(; L=1, tol=0.1, verbose=false)
+end
 
 end # module MultiGridBarrierMPI
