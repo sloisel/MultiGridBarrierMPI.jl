@@ -852,16 +852,23 @@ export native_to_mpi, mpi_to_native
 # ============================================================================
 
 @compile_workload begin
-    # Initialize MPI if needed
-    if !MPI.Initialized()
-        MPI.Init()
+    # Try to initialize MPI - may fail during precompilation under mpiexec
+    mpi_ok = try
+        if !MPI.Initialized()
+            MPI.Init()
+        end
+        true
+    catch
+        false
     end
-    Init()
 
-    # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
-    fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
-    fem2d_mpi_solve(; L=1, tol=0.1, verbose=false)
-    fem3d_mpi_solve(; L=1, tol=0.1, verbose=false)
+    if mpi_ok
+        Init()
+        # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
+        fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
+        fem2d_mpi_solve(; L=1, tol=0.1, verbose=false)
+        fem3d_mpi_solve(; L=1, tol=0.1, verbose=false)
+    end
 end
 
 end # module MultiGridBarrierMPI
