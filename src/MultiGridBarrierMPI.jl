@@ -68,7 +68,7 @@ MultiGridBarrier.amgb_zeros(::LinearAlgebra.Adjoint{T, <:MatrixMPI{T}}, m, n) wh
     MatrixMPI(zeros(T, m, n))
 
 # amgb_zeros for vectors (used in multigrid coarsening)
-MultiGridBarrier.amgb_zeros(::VectorMPI{T}, m) where {T} = VectorMPI(zeros(T, m))
+MultiGridBarrier.amgb_zeros(::Type{VectorMPI{T}}, m) where {T} = VectorMPI(zeros(T, m))
 
 # amgb_all_isfinite: Check if all elements are finite
 MultiGridBarrier.amgb_all_isfinite(z::VectorMPI{T}) where {T} = all(isfinite.(Vector(z)))
