@@ -10,7 +10,7 @@ using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
 using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using LinearAlgebraMPI: VectorMPI, MatrixMPI, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier

@@ -10,9 +10,8 @@ using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
 using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using LinearAlgebraMPI: VectorMPI, MatrixMPI, io0
 using LinearAlgebra
-using SparseArrays
 using MultiGridBarrier
 
 comm = MPI.COMM_WORLD
@@ -100,27 +99,6 @@ if rank == 0
 end
 
 @test result4_native ≈ expected4
-
-# Test 5: Function on SparseMatrixMPI transpose (R')
-# This is the critical case from AlgebraicMultiGridBarrier.jl line 551
-s_native = sparse([1.0 2.0; 3.0 4.0; 5.0 6.0; 7.0 8.0])  # 4x2
-s_mpi = SparseMatrixMPI{Float64}(s_native)
-
-# Test with transpose (R')
-result5_mpi = MultiGridBarrier.map_rows(k -> Float64(0), s_mpi')
-result5_native = Vector(result5_mpi)
-expected5 = zeros(2)  # R' has 2 rows (transpose of 4x2)
-
-if rank == 0
-    println("[DEBUG] Test 5: Function on transpose of SparseMatrixMPI")
-    println("[DEBUG] R has size $(size(s_native)), R' has size $(size(s_native'))")
-    println("[DEBUG] Expected: $expected5")
-    println("[DEBUG] Got: $result5_native")
-    println("[DEBUG] Match: $(result5_native ≈ expected5)")
-    flush(stdout)
-end
-
-@test result5_native ≈ expected5
 
 if rank == 0
     println("[DEBUG] All map_rows tests completed successfully")

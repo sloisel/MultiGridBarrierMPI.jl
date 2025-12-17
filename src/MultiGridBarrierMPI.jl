@@ -100,61 +100,14 @@ get_row_partition(M::MatrixMPI) = M.row_partition
 get_row_partition(A::SparseMatrixMPI) = A.row_partition
 
 """
-    make_row_accessor(x)
-
-Create a function that accesses local row i from an MPI distributed type.
-Returns a view or extracted row data.
-"""
-make_row_accessor(v::VectorMPI) = i -> view(v.v, i:i)
-make_row_accessor(M::MatrixMPI) = i -> view(M.A, i, :)
-
-# For sparse matrices, we need to extract the row from the transposed storage
-function make_row_accessor(A::SparseMatrixMPI{T}) where {T}
-    # A.A is Transpose{T, SparseMatrixCSC{T,Int}}
-    # A.A.parent is the underlying CSC with shape (length(col_indices), local_nrows)
-    # Column i of A.A.parent corresponds to local row i
-    # We need to return the values with their global column indices
-    parent_csc = A.A.parent
-    col_indices = A.col_indices
-    global_ncols = A.col_partition[end] - 1
-
-    return function(i)
-        # Get nonzeros in column i of the CSC (which is row i of the matrix)
-        col_start = parent_csc.colptr[i]
-        col_end = parent_csc.colptr[i+1] - 1
-
-        # Create a dense row vector
-        row = zeros(T, global_ncols)
-        for idx in col_start:col_end
-            local_col = parent_csc.rowval[idx]
-            global_col = col_indices[local_col]
-            row[global_col] = parent_csc.nzval[idx]
-        end
-        return row
-    end
-end
-
-"""
-    MultiGridBarrier.map_rows(f, A::Union{VectorMPI{T}, MatrixMPI{T}, SparseMatrixMPI{T}}...) where {T}
+    MultiGridBarrier.map_rows(f, A::Union{VectorMPI{T}, MatrixMPI{T}}...) where {T}
 
 **MPI Collective**
 
 Apply a function `f` to corresponding rows across distributed MPI vectors and matrices.
 
-Similar to the native Julia pattern `vcat((f.((eachrow.(A))...))...)`, but works with
-distributed MPI objects. The function `f` is applied row-wise to each input, and the
-results are concatenated into a new distributed vector or matrix.
-
-# Arguments
-- `f::Function`: Function to apply to each row. Should accept as many arguments as there are inputs.
-- `A...::Union{VectorMPI{T},MatrixMPI{T},SparseMatrixMPI{T}}`: One or more distributed vectors or matrices.
-  All inputs must have the same number of rows and compatible row partitions.
-
-# Return value
-Returns `VectorMPI{T}` or `MatrixMPI{T}`. The return type depends on what `f` returns:
-- If `f` returns a scalar → returns a `VectorMPI{T}`
-- If `f` returns an adjoint vector (row vector) → returns a `MatrixMPI{T}`
-- If `f` returns a vector → returns a `VectorMPI{T}` (expanded)
+This is a thin wrapper around `LinearAlgebraMPI.map_rows`. See that function for
+full documentation.
 
 # Examples
 ```julia
@@ -170,149 +123,9 @@ C = VectorMPI(randn(5))
 combined = map_rows((x, y) -> [sum(x), prod(x), y[1]]', B, C)  # Returns 5×3 MatrixMPI
 ```
 """
-const MPIArrayType{T} = Union{VectorMPI{T}, MatrixMPI{T}, SparseMatrixMPI{T}}
-const MPIArrayOrWrapped{T} = Union{
-    VectorMPI{T}, MatrixMPI{T}, SparseMatrixMPI{T},
-    LinearAlgebra.Adjoint{T, <:Union{VectorMPI{T}, MatrixMPI{T}, SparseMatrixMPI{T}}},
-    LinearAlgebra.Transpose{T, <:Union{VectorMPI{T}, MatrixMPI{T}, SparseMatrixMPI{T}}}
-}
-
-function MultiGridBarrier.map_rows(f, A::MPIArrayOrWrapped{T}...) where {T}
-    isempty(A) && throw(ArgumentError("map_rows requires at least one input"))
-
-    comm = MPI.COMM_WORLD
-    rank = MPI.Comm_rank(comm)
-    nranks = MPI.Comm_size(comm)
-
-    # Materialize any adjoint or transpose wrappers
-    materialized = [_maybe_materialize(a) for a in A]
-
-    # Get row partitions and verify consistency
-    partitions = [get_row_partition(a) for a in materialized]
-    if !all(p -> p == partitions[1], partitions)
-        error("All inputs to map_rows must have the same row partition")
-    end
-
-    partition = partitions[1]
-    local_start = partition[rank+1]
-    local_end = partition[rank+2] - 1
-    nlocal = local_end - local_start + 1
-
-    # Create row accessors for each input
-    accessors = [make_row_accessor(a) for a in materialized]
-
-    # Handle empty partition case - need to determine output type from other ranks
-    if nlocal == 0
-        # Broadcast output type info from a rank with data
-        local_has_data = 0
-    else
-        local_has_data = 1
-    end
-
-    all_has_data = Vector{Int}(undef, nranks)
-    MPI.Allgather!(Ref(local_has_data), all_has_data, comm)
-
-    first_rank_with_data = findfirst(x -> x == 1, all_has_data)
-    if first_rank_with_data === nothing
-        throw(ArgumentError("map_rows: all ranks have empty local partitions"))
-    end
-    first_rank_with_data -= 1  # Convert to 0-based
-
-    # Sample output to determine return type
-    if nlocal > 0
-        sample = f([acc(1) for acc in accessors]...)
-    else
-        sample = nothing
-    end
-
-    # Broadcast output type info
-    # 1 = scalar, 2 = adjoint (matrix), 3 = vector
-    if sample !== nothing && rank == first_rank_with_data
-        if isa(sample, Number)
-            output_type_int = 1
-            output_ncols = 1
-        elseif isa(sample, LinearAlgebra.Adjoint) && isa(parent(sample), AbstractVector)
-            output_type_int = 2
-            output_ncols = length(parent(sample))
-        elseif isa(sample, AbstractVector)
-            output_type_int = 3
-            output_ncols = length(sample)
-        else
-            error("map_rows: function f must return a scalar, Vector, or adjoint Vector, got $(typeof(sample))")
-        end
-    else
-        output_type_int = 0
-        output_ncols = 0
-    end
-
-    output_type_ref = Ref(output_type_int)
-    output_ncols_ref = Ref(output_ncols)
-    MPI.Bcast!(output_type_ref, first_rank_with_data, comm)
-    MPI.Bcast!(output_ncols_ref, first_rank_with_data, comm)
-    output_type_int = output_type_ref[]
-    output_ncols = output_ncols_ref[]
-
-    # Build result based on output type
-    if output_type_int == 1
-        # Scalar output -> VectorMPI
-        if nlocal > 0
-            result_local = Vector{T}(undef, nlocal)
-            for i in 1:nlocal
-                result_local[i] = T(f([acc(i) for acc in accessors]...))
-            end
-        else
-            result_local = Vector{T}()
-        end
-        return VectorMPI_local(result_local)
-
-    elseif output_type_int == 2
-        # Adjoint vector output -> MatrixMPI
-        if nlocal > 0
-            result_local = Matrix{T}(undef, nlocal, output_ncols)
-            for i in 1:nlocal
-                result_row = f([acc(i) for acc in accessors]...)
-                result_local[i, :] = parent(result_row)
-            end
-        else
-            result_local = Matrix{T}(undef, 0, output_ncols)
-        end
-        return MatrixMPI_local(result_local)
-
-    else  # output_type_int == 3
-        # Vector output -> VectorMPI (expanded)
-        if nlocal > 0
-            results = [f([acc(i) for acc in accessors]...) for i in 1:nlocal]
-            result_local = vcat(results...)
-        else
-            result_local = Vector{T}()
-        end
-        return VectorMPI_local(result_local)
-    end
+function MultiGridBarrier.map_rows(f, A::Union{VectorMPI{T}, MatrixMPI{T}}...) where {T}
+    LinearAlgebraMPI.map_rows(f, A...)
 end
-
-"""
-    _materialize_adjoint(A::LinearAlgebra.Adjoint)
-
-Materialize an adjoint wrapper to its parent type for map_rows processing.
-"""
-_materialize_adjoint(A::LinearAlgebra.Adjoint{T, <:MatrixMPI{T}}) where {T} = MatrixMPI(Matrix(parent(A))')
-_materialize_adjoint(A::LinearAlgebra.Adjoint{T, <:VectorMPI{T}}) where {T} = VectorMPI(Vector(parent(A)))
-# For real types, adjoint == transpose, so use materialize_transpose
-_materialize_adjoint(A::LinearAlgebra.Adjoint{T, <:SparseMatrixMPI{T}}) where {T<:Real} = LinearAlgebraMPI.materialize_transpose(parent(A))
-
-# Also handle Transpose wrappers (for real types, transpose and adjoint are the same)
-_materialize_adjoint(A::LinearAlgebra.Transpose{T, <:MatrixMPI{T}}) where {T} = MatrixMPI(Matrix(transpose(parent(A))))
-_materialize_adjoint(A::LinearAlgebra.Transpose{T, <:VectorMPI{T}}) where {T} = VectorMPI(Vector(parent(A)))
-_materialize_adjoint(A::LinearAlgebra.Transpose{T, <:SparseMatrixMPI{T}}) where {T} = LinearAlgebraMPI.materialize_transpose(parent(A))
-
-"""
-    _maybe_materialize(A)
-
-Materialize an adjoint/transpose wrapper to its parent MPI type, or return the original if not wrapped.
-"""
-_maybe_materialize(A::LinearAlgebra.Adjoint) = _materialize_adjoint(A)
-_maybe_materialize(A::LinearAlgebra.Transpose) = _materialize_adjoint(A)
-_maybe_materialize(A) = A
 
 # ============================================================================
 # Type Conversion
@@ -852,23 +665,23 @@ export native_to_mpi, mpi_to_native
 # ============================================================================
 
 @compile_workload begin
-    # Try to initialize MPI - may fail during precompilation under mpiexec
-    mpi_ok = try
-        if !MPI.Initialized()
-            MPI.Init()
+    # === MPI Jail Escape ===
+    # When precompiling under mpiexec, the subprocess inherits MPI environment
+    # variables but isn't part of the MPI job. Clean them to allow MPI.Init()
+    # to succeed as a fresh single-rank process.
+    for k in collect(keys(ENV))
+        if startswith(k, "PMI") || startswith(k, "PMIX") || startswith(k, "OMPI_") || startswith(k, "MPI_")
+            delete!(ENV, k)
         end
-        true
-    catch
-        false
     end
 
-    if mpi_ok
-        Init()
-        # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
-        fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
-        fem2d_mpi_solve(; L=1, tol=0.1, verbose=false)
-        fem3d_mpi_solve(; L=1, tol=0.1, verbose=false)
-    end
+    MPI.Init()
+    Init()
+
+    # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
+    fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
+    fem2d_mpi_solve(; L=1, tol=0.1, verbose=false)
+    fem3d_mpi_solve(; L=1, tol=0.1, verbose=false)
 end
 
 end # module MultiGridBarrierMPI
