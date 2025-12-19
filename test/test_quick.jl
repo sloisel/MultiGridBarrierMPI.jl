@@ -8,7 +8,6 @@ end
 
 # Use MultiGridBarrierMPI initializer
 using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
 
 # Now load dependencies for tests
 using LinearAlgebraMPI

@@ -5,7 +5,6 @@ A module that provides a convenient interface for using MultiGridBarrier with MP
 distributed types through LinearAlgebraMPI.
 
 # Exports
-- `Init`: Initialize MultiGridBarrierMPI with MPI
 - `fem1d_mpi`: Creates an MPI-based Geometry from fem1d parameters
 - `fem1d_mpi_solve`: Solves a fem1d problem using amgb with MPI types
 - `fem2d_mpi`: Creates an MPI-based Geometry from fem2d parameters
@@ -20,7 +19,6 @@ distributed types through LinearAlgebraMPI.
 using MPI
 MPI.Init()
 using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
 using MultiGridBarrier: parabolic_solve
 
 # 1D: Create MPI geometry and solve
@@ -392,47 +390,6 @@ _convert_to_native(x) = x  # Fallback for non-MPI types
 # Public API
 # ============================================================================
 
-# Module-level flag to track whether MultiGridBarrierMPI has been initialized
-const MGBMPI_INITIALIZED = Ref(false)
-
-"""
-    Init()
-
-**Collective**
-
-Initialize MultiGridBarrierMPI by ensuring MPI is initialized.
-
-This function should be called once before using any MultiGridBarrierMPI functionality.
-It will initialize MPI if not already initialized.
-
-# Example
-```julia
-using MPI
-MPI.Init()
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
-```
-"""
-function Init()
-    # Only initialize once
-    if MGBMPI_INITIALIZED[]
-        return
-    end
-
-    # Initialize MPI if not already initialized
-    if !MPI.Initialized()
-        MPI.Init()
-    end
-
-    # Get rank for output
-    rank = MPI.Comm_rank(MPI.COMM_WORLD)
-    if rank == 0
-        println("MultiGridBarrierMPI initialized")
-    end
-
-    MGBMPI_INITIALIZED[] = true
-end
-
 """
     fem1d_mpi(::Type{T}=Float64; kwargs...) where {T}
 
@@ -650,7 +607,6 @@ function fem3d_mpi_solve(::Type{T}=Float64;
 end
 
 # Export the public API
-export Init
 export fem1d_mpi, fem1d_mpi_solve
 export fem2d_mpi, fem2d_mpi_solve
 export fem3d_mpi, fem3d_mpi_solve
@@ -672,7 +628,6 @@ export native_to_mpi, mpi_to_native
     end
 
     MPI.Init()
-    Init()
 
     # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
     fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
