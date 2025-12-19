@@ -26,8 +26,8 @@ g1d = fem1d_mpi(Float64; L=4)
 sol1d = fem1d_mpi_solve(Float64; L=4, p=1.0, verbose=true)
 
 # 2D: Create MPI geometry and solve
-g = fem2d_mpi(Float64; maxh=0.1)
-sol = fem2d_mpi_solve(Float64; maxh=0.1, p=2.0, verbose=true)
+g = fem2d_mpi(Float64; L=3)
+sol = fem2d_mpi_solve(Float64; L=3, p=2.0, verbose=true)
 
 # 3D: Create MPI geometry and solve
 g3d = fem3d_mpi(Float64; L=2, k=3)
@@ -479,7 +479,7 @@ A Geometry object with MPI distributed types.
 ```julia
 using MPI; MPI.Init()
 using MultiGridBarrierMPI
-g = fem2d_mpi(Float64; maxh=0.1)
+g = fem2d_mpi(Float64; L=3)
 ```
 """
 function fem2d_mpi(::Type{T}=Float64; kwargs...) where {T}
@@ -503,7 +503,7 @@ single call. It creates an MPI-based geometry and solves the barrier problem.
 # Arguments
 - `T::Type`: Element type for the geometry (default: Float64)
 - `kwargs...`: Keyword arguments passed to both `fem2d_mpi` and `amgb`
-  - `maxh`: Maximum mesh size (passed to fem2d)
+  - `L`: Number of multigrid levels (passed to fem2d)
   - `p`: Power parameter for the barrier (passed to amgb)
   - `verbose`: Verbosity flag (passed to amgb)
   - Other arguments specific to fem2d or amgb
@@ -513,7 +513,7 @@ The solution object from `amgb`.
 
 # Example
 ```julia
-sol = fem2d_mpi_solve(Float64; maxh=0.1, p=2.0, verbose=true)
+sol = fem2d_mpi_solve(Float64; L=3, p=2.0, verbose=true)
 println("Solution norm: ", norm(sol.z))
 ```
 """

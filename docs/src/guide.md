@@ -90,7 +90,7 @@ Convert native Julia arrays to MPI distributed types:
 using MultiGridBarrier
 
 # Create native geometry
-g_native = fem2d(; maxh=0.3)
+g_native = fem2d(; L=2)
 
 # Convert to MPI types for distributed computation
 g_mpi = native_to_mpi(g_native)
@@ -110,7 +110,7 @@ Convert MPI types back to native Julia arrays:
 
 ```julia
 # Create and solve with MPI types
-g_mpi = fem2d_mpi(Float64; maxh=0.3)
+g_mpi = fem2d_mpi(Float64; L=2)
 sol_mpi = amgb(g_mpi; p=2.0)
 
 # Convert back for analysis
@@ -139,7 +139,7 @@ using LinearAlgebraMPI
 using MultiGridBarrier
 
 # 1. Create native geometry with specific parameters
-g_native = fem2d(; maxh=0.2, L=2)
+g_native = fem2d(; L=2)
 
 # 2. Convert to MPI for distributed solving
 g_mpi = native_to_mpi(g_native)
@@ -216,17 +216,28 @@ nranks = MPI.Comm_size(MPI.COMM_WORLD)  # Total number of ranks
 
 ## Performance Considerations
 
-### Mesh Size and MPI Ranks
+### MUMPS Solver Threading
 
-For efficient parallel computation:
+LinearAlgebraMPI uses MUMPS for sparse direct solves. MUMPS has two threading mechanisms:
 
-- **Small problems** (L <= 3): Use 1-4 MPI ranks
-- **Medium problems** (L = 4-5): Use 4-16 MPI ranks
-- **Large problems** (L >= 6): Use 16+ MPI ranks
+- **OpenMP threads** (`OMP_NUM_THREADS`): Controls algorithm-level parallelism in the multifrontal method
+- **BLAS threads** (`OPENBLAS_NUM_THREADS`): Controls parallelism inside dense matrix operations
 
-### MUMPS Solver
+For optimal performance matching Julia's built-in solver:
 
-LinearAlgebraMPI.jl uses MUMPS for sparse direct solves, ensuring accurate Newton iterations in the barrier method.
+```bash
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=<number_of_cores>
+mpiexec -n 4 julia --project my_program.jl
+```
+
+You can also set these in Julia's startup.jl:
+
+```julia
+# In ~/.julia/config/startup.jl
+ENV["OMP_NUM_THREADS"] = "1"
+ENV["OPENBLAS_NUM_THREADS"] = string(Sys.CPU_THREADS)
+```
 
 ## 1D Problems
 
@@ -271,7 +282,7 @@ using MultiGridBarrierMPI
 using LinearAlgebraMPI
 
 # Solve a 2D problem
-sol = fem2d_mpi_solve(Float64; L=2, maxh=0.3, p=1.0, verbose=true)
+sol = fem2d_mpi_solve(Float64; L=2, p=1.0, verbose=true)
 
 # Convert solution to native types for analysis
 sol_native = mpi_to_native(sol)
@@ -285,7 +296,7 @@ println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `L` | Number of multigrid levels | 2 |
-| `maxh` | Maximum mesh element size | 0.3 |
+| `K` | Coarse mesh vertices (3n×2 matrix) | Unit square triangulation |
 
 ## 3D Problems
 

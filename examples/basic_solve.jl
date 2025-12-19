@@ -31,17 +31,15 @@ println(io0(), "Running on $nranks MPI ranks\n")
 # Problem parameters
 L = 2          # Refinement levels (L=2 is fast for demonstration)
 p = 1.0        # Barrier power parameter
-maxh = 0.3     # Maximum mesh size
 
 println(io0(), "Problem Parameters:")
 println(io0(), "  Refinement levels (L): $L")
 println(io0(), "  Barrier parameter (p): $p")
-println(io0(), "  Max mesh size (maxh):  $maxh")
 println(io0(), "")
 
 # Solve with MPI distributed types (collective operation)
 println(io0(), "Solving with MPI distributed types...")
-sol_mpi = fem2d_mpi_solve(Float64; L=L, maxh=maxh, p=p, verbose=true)
+sol_mpi = fem2d_mpi_solve(Float64; L=L, p=p, verbose=true)
 
 # Convert solution to native Julia types (collective operation)
 println(io0(), "\nConverting solution to native types...")

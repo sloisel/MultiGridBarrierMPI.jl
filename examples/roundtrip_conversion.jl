@@ -32,7 +32,7 @@ println(io0(), "Running on $nranks MPI ranks\n")
 
 # Step 1: Create native geometry (all ranks create identical copy)
 println(io0(), "Step 1: Creating native geometry...")
-g_native = fem2d(; maxh=0.3, L=2)
+g_native = fem2d(; L=2)
 
 # Get dimensions
 n_points = size(g_native.x, 1)

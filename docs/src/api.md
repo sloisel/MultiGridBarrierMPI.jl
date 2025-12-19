@@ -137,7 +137,7 @@ using MultiGridBarrier
 using LinearAlgebra
 
 # Create native geometry
-g_native = fem2d(; maxh=0.3)
+g_native = fem2d(; L=2)
 
 # Convert to MPI
 g_mpi = native_to_mpi(g_native)
@@ -158,7 +158,7 @@ g_back = mpi_to_native(g_mpi)
 
 ```julia
 # Native geometry
-g_native = fem2d(; maxh=0.2)
+g_native = fem2d(; L=2)
 id_native = g_native.operators[:id]  # SparseMatrixCSC
 
 # MPI geometry
