@@ -241,17 +241,21 @@ ENV["OPENBLAS_NUM_THREADS"] = string(Sys.CPU_THREADS)
 
 The following table compares MultiGridBarrierMPI (using MUMPS) against MultiGridBarrier.jl's native solver on a 2D p-Laplace problem. Both use `OMP_NUM_THREADS=1` and `OPENBLAS_NUM_THREADS=10`. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
 
-| L | n (grid points) | Native (s) | MPI (s) | Ratio |
-|---|-----------------|------------|---------|-------|
-| 1 | 14 | 0.015 | 0.030 | 2.04x |
-| 2 | 56 | 0.024 | 0.035 | 1.44x |
-| 3 | 224 | 0.069 | 0.074 | 1.08x |
-| 4 | 896 | 0.462 | 0.406 | 0.88x |
-| 5 | 3,584 | 2.481 | 1.741 | 0.70x |
+| L | n (grid points) | Native (s) | MPI (s) | Ratio | Diff |
+|---|-----------------|------------|---------|-------|------|
+| 1 | 14 | 0.014 | 0.031 | 2.15x | 0.00e+00 |
+| 2 | 56 | 0.024 | 0.033 | 1.42x | 8.88e-16 |
+| 3 | 224 | 0.065 | 0.070 | 1.09x | 4.13e-11 |
+| 4 | 896 | 0.443 | 0.390 | 0.88x | 1.04e-14 |
+| 5 | 3,584 | 2.305 | 1.894 | 0.82x | 3.55e-12 |
+| 6 | 14,336 | 25.746 | 72.984 | 2.83x | 1.08e-13 |
+| 7 | 57,344 | 97.303 | 114.658 | 1.18x | 3.31e-13 |
+| 8 | 229,376 | 634.308 | 515.079 | 0.81x | 1.31e-11 |
 
 *Ratio = MPI time / Native time (lower is better, <1.0 means MPI is faster)*
+*Diff = sup-norm difference between native and MPI solutions*
 
-For larger problems (L≥4), the MPI version is faster than the native solver due to optimized sparse matrix operations with precomputed symbolic multiplication.
+For medium-sized problems (L=4-5) and large problems (L=8), the MPI version is faster than the native solver.
 
 ## 1D Problems
 
