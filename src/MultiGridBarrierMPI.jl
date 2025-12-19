@@ -400,8 +400,6 @@ Create an MPI-based Geometry from fem1d parameters.
 This function calls `fem1d(kwargs...)` to create a native 1D geometry, then converts
 it to use MPI distributed types for distributed computing.
 
-Note: Call `MultiGridBarrierMPI.Init()` before using this function.
-
 # Arguments
 - `T::Type`: Element type for the geometry (default: Float64)
 - `kwargs...`: Additional keyword arguments passed to `fem1d()`:
@@ -412,7 +410,8 @@ A Geometry object with MPI distributed types.
 
 # Example
 ```julia
-MultiGridBarrierMPI.Init()
+using MPI; MPI.Init()
+using MultiGridBarrierMPI
 g = fem1d_mpi(Float64; L=4)
 ```
 """
@@ -469,8 +468,6 @@ Create an MPI-based Geometry from fem2d parameters.
 This function calls `fem2d(kwargs...)` to create a native geometry, then converts
 it to use MPI distributed types for distributed computing.
 
-Note: Call `MultiGridBarrierMPI.Init()` before using this function.
-
 # Arguments
 - `T::Type`: Element type for the geometry (default: Float64)
 - `kwargs...`: Additional keyword arguments passed to `fem2d()`
@@ -480,7 +477,8 @@ A Geometry object with MPI distributed types.
 
 # Example
 ```julia
-MultiGridBarrierMPI.Init()
+using MPI; MPI.Init()
+using MultiGridBarrierMPI
 g = fem2d_mpi(Float64; maxh=0.1)
 ```
 """
@@ -537,8 +535,6 @@ Create an MPI-based Geometry from fem3d parameters.
 This function calls `fem3d(kwargs...)` to create a native 3D geometry, then converts
 it to use MPI distributed types for distributed computing.
 
-Note: Call `MultiGridBarrierMPI.Init()` before using this function.
-
 # Arguments
 - `T::Type`: Element type for the geometry (default: Float64)
 - `kwargs...`: Additional keyword arguments passed to `fem3d()`:
@@ -551,7 +547,8 @@ A Geometry object with MPI distributed types.
 
 # Example
 ```julia
-MultiGridBarrierMPI.Init()
+using MPI; MPI.Init()
+using MultiGridBarrierMPI
 g = fem3d_mpi(Float64; L=2, k=3)
 ```
 """

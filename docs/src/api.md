@@ -5,14 +5,6 @@ This page provides detailed documentation for all exported functions in MultiGri
 !!! note "All Functions Are Collective"
     All functions documented here are **MPI collective operations**. Every MPI rank must call these functions together with the same parameters. Failure to do so will result in deadlock.
 
-## Initialization
-
-This function initializes the module (optional, called automatically on first use).
-
-```@docs
-Init
-```
-
 ## High-Level API
 
 These functions provide the simplest interface for solving problems with MPI types.
