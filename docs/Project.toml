@@ -5,6 +5,3 @@ LinearAlgebraMPI = "5bdd2be4-ae34-42ef-8b36-f4c85d48f377"
 MultiGridBarrier = "9e2c1f1d-9131-4ad4-b32f-bd2a0b0ecd1e"
 MultiGridBarrierMPI = "abf18f27-d12f-4566-94ed-07bf0c385f70"
 
-[sources]
-LinearAlgebraMPI = {url = "https://github.com/sloisel/LinearAlgebraMPI.jl"}
-MultiGridBarrier = {url = "https://github.com/sloisel/MultiGridBarrier.jl"}
