@@ -2,9 +2,12 @@
 #
 # Benchmark: MultiGridBarrier.jl (Native) vs MultiGridBarrierMPI
 #
-# Runs fem2d_solve for increasing L until runtime exceeds 30s
+# Runs fem2d_solve for L = 1:8
 #
-# Run with: mpiexec -n 4 julia -t 2 --project=. tools/benchmark_fem2d.jl
+# Run with:
+#   export OMP_NUM_THREADS=1
+#   export OPENBLAS_NUM_THREADS=10  # or your number of CPU cores
+#   mpiexec -n 1 julia -t 10 --project=. tools/benchmark_fem2d.jl
 #
 
 using MPI
@@ -22,21 +25,17 @@ using MultiGridBarrier
 using MultiGridBarrierMPI
 using Dates
 
-# Initialize MPI package
-MultiGridBarrierMPI.Init()
 
 io0("\n" * "="^70)
 io0("Benchmark: fem2d_solve - Native vs MPI")
 io0("  MPI ranks: $nranks, Julia threads: $(Threads.nthreads())")
-io0("  Stop when runtime > 30s")
+io0("  Running L = 1:8")
 io0("="^70)
 
 # Store results
 results = Vector{NamedTuple}()
 
-L = 0
-while true
-    global L += 1
+for L in 1:8
 
     # Get grid size
     g = fem2d(Float64; L=L)
@@ -62,37 +61,32 @@ while true
     io0("  Timed MPI...")
     mpi_time = @elapsed fem2d_mpi_solve(Float64; L=L, verbose=false)
 
-    # Calculate speedup
-    speedup = native_time / mpi_time
+    # Calculate ratio (MPI time / Native time)
+    ratio = mpi_time / native_time
 
-    push!(results, (L=L, n=n, native=native_time, mpi=mpi_time, speedup=speedup))
+    push!(results, (L=L, n=n, native=native_time, mpi=mpi_time, ratio=ratio))
 
     io0("  Native: $(round(native_time, digits=3))s")
     io0("  MPI:    $(round(mpi_time, digits=3))s")
-    io0("  Speedup: $(round(speedup, digits=2))x")
+    io0("  Ratio:  $(round(ratio, digits=2))x")
 
-    # Stop if either time exceeds 30s
-    if native_time > 30 || mpi_time > 30
-        io0("\n  Stopping: runtime exceeded 30s")
-        break
-    end
 end
 
 # Summary table
 io0("\n" * "="^70)
 io0("Summary")
 io0("="^70)
-io0("\n  L       n       Native          MPI             Speedup")
-io0("  -       -       ------          ---             -------")
+io0("\n  L       n       Native          MPI             Ratio")
+io0("  -       -       ------          ---             -----")
 for r in results
     n_str = lpad(r.n, 7)
     native_str = lpad(round(r.native, digits=3), 10) * "s"
     mpi_str = lpad(round(r.mpi, digits=3), 10) * "s"
-    speedup_str = lpad(round(r.speedup, digits=2), 8) * "x"
-    io0("  $(r.L)    $n_str    $native_str    $mpi_str    $speedup_str")
+    ratio_str = lpad(round(r.ratio, digits=2), 8) * "x"
+    io0("  $(r.L)    $n_str    $native_str    $mpi_str    $ratio_str")
 end
 
-io0("\n  Speedup > 1 means MPI is faster than Native")
+io0("\n  Ratio = MPI time / Native time (lower is better)")
 io0("="^70)
 
 # Save HTML results (rank 0 only)
@@ -129,24 +123,24 @@ if rank == 0
             <th>n (grid points)</th>
             <th>Native (s)</th>
             <th>MPI (s)</th>
-            <th>Speedup</th>
+            <th>Ratio</th>
         </tr>
 """
     for r in results
-        speedup_class = r.speedup > 1 ? "faster" : "slower"
+        ratio_class = r.ratio < 1 ? "faster" : "slower"
         global html *= """
         <tr>
             <td>$(r.L)</td>
             <td>$(r.n)</td>
             <td>$(round(r.native, digits=3))</td>
             <td>$(round(r.mpi, digits=3))</td>
-            <td class="$speedup_class">$(round(r.speedup, digits=2))x</td>
+            <td class="$ratio_class">$(round(r.ratio, digits=2))x</td>
         </tr>
 """
     end
     html *= """
     </table>
-    <p><em>Speedup &gt; 1 means MPI is faster than Native</em></p>
+    <p><em>Ratio = MPI time / Native time (lower is better)</em></p>
 </body>
 </html>
 """
