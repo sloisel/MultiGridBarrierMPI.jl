@@ -242,7 +242,7 @@ ENV["OPENBLAS_NUM_THREADS"] = string(Sys.CPU_THREADS)
 
 ### Performance Comparison (Single-Rank)
 
-The following table compares MultiGridBarrierMPI (using MUMPS with `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=10`) against MultiGridBarrier.jl's native solver (using the same settings) on a 2D p-Laplace problem. This is a single-rank comparison to establish baseline overhead; multi-rank MPI parallelism provides additional speedup. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
+The following table compares MultiGridBarrierMPI (using MUMPS with `julia -t 10`, `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=10`) against MultiGridBarrier.jl's native solver (using the same settings) on a 2D p-Laplace problem. This is a single-rank comparison to establish baseline overhead; multi-rank MPI parallelism provides additional speedup. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
 
 | L | n (grid points) | Native (s) | MPI (s) | Ratio |
 |---|-----------------|------------|---------|-------|
