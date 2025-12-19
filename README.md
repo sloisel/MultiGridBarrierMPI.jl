@@ -1,5 +1,12 @@
 # MultiGridBarrierMPI.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://sloisel.github.io/MultiGridBarrierMPI.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://sloisel.github.io/MultiGridBarrierMPI.jl/dev/)
+[![Build Status](https://github.com/sloisel/MultiGridBarrierMPI.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/sloisel/MultiGridBarrierMPI.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/sloisel/MultiGridBarrierMPI.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/sloisel/MultiGridBarrierMPI.jl)
+
+**Author:** S. Loisel
+
 A Julia package that bridges MultiGridBarrier.jl and LinearAlgebraMPI.jl for distributed multigrid barrier computations using native MPI types.
 
 ## Overview
