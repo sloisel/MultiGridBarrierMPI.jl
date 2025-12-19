@@ -95,23 +95,6 @@ This package is part of a larger ecosystem:
 - **[LinearAlgebraMPI.jl](https://github.com/sloisel/LinearAlgebraMPI.jl)**: Pure Julia distributed linear algebra with MPI
 - **MPI.jl**: Julia MPI bindings for distributed computing
 
-## Performance Comparison (Single-Rank)
-
-The following table compares MultiGridBarrierMPI (using MUMPS with `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=10`) against MultiGridBarrier.jl's native solver (using the same settings) on a 2D p-Laplace problem. This is a single-rank comparison to establish baseline overhead; multi-rank MPI parallelism provides additional speedup. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
-
-| L | n (grid points) | Native (s) | MPI (s) | Ratio |
-|---|-----------------|------------|---------|-------|
-| 1 | 14 | 0.018 | 0.032 | 1.78x |
-| 2 | 56 | 0.036 | 0.058 | 1.61x |
-| 3 | 224 | 0.099 | 0.249 | 2.52x |
-| 4 | 896 | 0.591 | 1.113 | 1.88x |
-| 5 | 3,584 | 2.363 | 4.821 | 2.04x |
-| 6 | 14,336 | 24.379 | 81.318 | 3.34x |
-| 7 | 57,344 | 95.844 | 153.159 | 1.60x |
-| 8 | 229,376 | 620.071 | 850.123 | 1.37x |
-
-*Ratio = MPI time / Native time (lower is better)*
-
 ## Requirements
 
 - Julia 1.10 or later

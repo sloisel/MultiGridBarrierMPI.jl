@@ -216,19 +216,20 @@ nranks = MPI.Comm_size(MPI.COMM_WORLD)  # Total number of ranks
 
 ## Performance Considerations
 
-### MUMPS Solver Threading
+### Threading
 
-LinearAlgebraMPI uses MUMPS for sparse direct solves. MUMPS has two threading mechanisms:
+MultiGridBarrierMPI has three independent threading mechanisms that affect different parts of the computation:
 
-- **OpenMP threads** (`OMP_NUM_THREADS`): Controls algorithm-level parallelism in the multifrontal method
-- **BLAS threads** (`OPENBLAS_NUM_THREADS`): Controls parallelism inside dense matrix operations
+- **Julia threads** (`julia -t N`) - Affects the `⊛` operator for local sparse matrix multiplication and other parallel operations in the barrier method
+- **OpenMP threads** (`OMP_NUM_THREADS`) - Affects MUMPS algorithm-level parallelism in the multifrontal method
+- **BLAS threads** (`OPENBLAS_NUM_THREADS`) - Affects dense matrix operations in both Julia and MUMPS
 
-For optimal performance matching Julia's built-in solver:
+For optimal performance:
 
 ```bash
 export OMP_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=<number_of_cores>
-mpiexec -n 4 julia --project my_program.jl
+export OPENBLAS_NUM_THREADS=10  # or your number of CPU cores
+mpiexec -n 1 julia -t 10 --project my_program.jl
 ```
 
 You can also set these in Julia's startup.jl:
@@ -238,6 +239,23 @@ You can also set these in Julia's startup.jl:
 ENV["OMP_NUM_THREADS"] = "1"
 ENV["OPENBLAS_NUM_THREADS"] = string(Sys.CPU_THREADS)
 ```
+
+### Performance Comparison (Single-Rank)
+
+The following table compares MultiGridBarrierMPI (using MUMPS with `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=10`) against MultiGridBarrier.jl's native solver (using the same settings) on a 2D p-Laplace problem. This is a single-rank comparison to establish baseline overhead; multi-rank MPI parallelism provides additional speedup. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
+
+| L | n (grid points) | Native (s) | MPI (s) | Ratio |
+|---|-----------------|------------|---------|-------|
+| 1 | 14 | 0.018 | 0.032 | 1.78x |
+| 2 | 56 | 0.036 | 0.058 | 1.61x |
+| 3 | 224 | 0.099 | 0.249 | 2.52x |
+| 4 | 896 | 0.591 | 1.113 | 1.88x |
+| 5 | 3,584 | 2.363 | 4.821 | 2.04x |
+| 6 | 14,336 | 24.379 | 81.318 | 3.34x |
+| 7 | 57,344 | 95.844 | 153.159 | 1.60x |
+| 8 | 229,376 | 620.071 | 850.123 | 1.37x |
+
+*Ratio = MPI time / Native time (lower is better)*
 
 ## 1D Problems
 
