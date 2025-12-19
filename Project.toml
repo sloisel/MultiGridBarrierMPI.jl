@@ -1,6 +1,6 @@
 name = "MultiGridBarrierMPI"
 uuid = "abf18f27-d12f-4566-94ed-07bf0c385f70"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["S. Loisel"]
 
 [deps]

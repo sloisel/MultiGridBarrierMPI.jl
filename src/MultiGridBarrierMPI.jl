@@ -210,7 +210,7 @@ function native_to_mpi(g_native::Geometry{T, Matrix{T}, Vector{T}, SparseMatrixC
 end
 
 """
-    mpi_to_native(g_mpi::Geometry{T, MatrixMPI{T}, VectorMPI{T}, SparseMatrixMPI{T}, Discretization}) where {T, Discretization}
+    mpi_to_native(g_mpi::Geometry{T, MatrixMPI{T}, VectorMPI{T}, <:SparseMatrixMPI{T}, Discretization}) where {T, Discretization}
 
 **Collective**
 
@@ -222,7 +222,7 @@ This is a collective operation. This function converts:
 - operators[key]::SparseMatrixMPI{T} -> operators[key]::SparseMatrixCSC{T,Int}
 - subspaces[key][i]::SparseMatrixMPI{T} -> subspaces[key][i]::SparseMatrixCSC{T,Int}
 """
-function mpi_to_native(g_mpi::Geometry{T, MatrixMPI{T}, VectorMPI{T}, SparseMatrixMPI{T}, Discretization}) where {T, Discretization}
+function mpi_to_native(g_mpi::Geometry{T, MatrixMPI{T}, VectorMPI{T}, <:SparseMatrixMPI{T}, Discretization}) where {T, Discretization}
     # Convert x (geometry coordinates) from MatrixMPI to Matrix
     x_native = Matrix(g_mpi.x)
 
