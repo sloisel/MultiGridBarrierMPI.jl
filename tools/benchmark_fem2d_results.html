@@ -20,8 +20,8 @@
     <div class="info">
         <strong>Configuration:</strong><br>
         MPI ranks: 1<br>
-        Julia threads: 10<br>
-        Date: 2025-12-19 17:26:26
+        BLAS threads: 10<br>
+        Date: 2025-12-19 21:59:14
     </div>
     <table>
         <tr>
@@ -29,65 +29,51 @@
             <th>n (grid points)</th>
             <th>Native (s)</th>
             <th>MPI (s)</th>
-            <th>Speedup</th>
+            <th>Ratio</th>
         </tr>
         <tr>
             <td>1</td>
             <td>14</td>
-            <td>0.018</td>
-            <td>0.032</td>
-            <td class="slower">0.56x</td>
+            <td>0.015</td>
+            <td>0.029</td>
+            <td class="slower">1.91x</td>
         </tr>
         <tr>
             <td>2</td>
             <td>56</td>
-            <td>0.036</td>
-            <td>0.058</td>
-            <td class="slower">0.62x</td>
+            <td>0.038</td>
+            <td>0.051</td>
+            <td class="slower">1.37x</td>
         </tr>
         <tr>
             <td>3</td>
             <td>224</td>
-            <td>0.099</td>
-            <td>0.249</td>
-            <td class="slower">0.4x</td>
+            <td>0.097</td>
+            <td>0.302</td>
+            <td class="slower">3.12x</td>
         </tr>
         <tr>
             <td>4</td>
             <td>896</td>
-            <td>0.591</td>
-            <td>1.113</td>
-            <td class="slower">0.53x</td>
+            <td>0.584</td>
+            <td>1.016</td>
+            <td class="slower">1.74x</td>
         </tr>
         <tr>
             <td>5</td>
             <td>3584</td>
-            <td>2.363</td>
-            <td>4.821</td>
-            <td class="slower">0.49x</td>
+            <td>2.268</td>
+            <td>4.473</td>
+            <td class="slower">1.97x</td>
         </tr>
         <tr>
             <td>6</td>
             <td>14336</td>
-            <td>24.379</td>
-            <td>81.318</td>
-            <td class="slower">0.3x</td>
-        </tr>
-        <tr>
-            <td>7</td>
-            <td>57344</td>
-            <td>95.844</td>
-            <td>153.159</td>
-            <td class="slower">0.63x</td>
-        </tr>
-        <tr>
-            <td>8</td>
-            <td>229376</td>
-            <td>620.071</td>
-            <td>850.123</td>
-            <td class="slower">0.73x</td>
+            <td>24.581</td>
+            <td>79.246</td>
+            <td class="slower">3.22x</td>
         </tr>
     </table>
-    <p><em>Speedup &gt; 1 means MPI is faster than Native</em></p>
+    <p><em>Ratio = MPI time / Native time (lower is better)</em></p>
 </body>
 </html>

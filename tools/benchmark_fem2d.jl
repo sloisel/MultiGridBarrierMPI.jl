@@ -7,7 +7,7 @@
 # Run with:
 #   export OMP_NUM_THREADS=1
 #   export OPENBLAS_NUM_THREADS=10  # or your number of CPU cores
-#   mpiexec -n 1 julia -t 10 --project=. tools/benchmark_fem2d.jl
+#   mpiexec -n 1 julia --project=. tools/benchmark_fem2d.jl
 #
 
 using MPI
@@ -24,12 +24,14 @@ io0("Loading packages...")
 using MultiGridBarrier
 using MultiGridBarrierMPI
 using Dates
+using LinearAlgebra
+using Printf
 
 
 io0("\n" * "="^70)
 io0("Benchmark: fem2d_solve - Native vs MPI")
-io0("  MPI ranks: $nranks, Julia threads: $(Threads.nthreads())")
-io0("  Running L = 1:8")
+io0("  MPI ranks: $nranks, BLAS threads: $(LinearAlgebra.BLAS.get_num_threads())")
+io0("  Running L = 1:5")
 io0("="^70)
 
 # Store results
@@ -45,10 +47,12 @@ for L in 1:8
 
     # Native: warmup and timed run on rank 0 only
     native_time = 0.0
+    native_sol = nothing
     if rank == 0
         io0("  Warmup Native...")
         fem2d_solve(Float64; L=L, verbose=false)
         io0("  Timed Native...")
+        native_sol = fem2d_solve(Float64; L=L, verbose=false)
         native_time = @elapsed fem2d_solve(Float64; L=L, verbose=false)
     end
 
@@ -59,16 +63,25 @@ for L in 1:8
     io0("  Warmup MPI...")
     fem2d_mpi_solve(Float64; L=L, verbose=false)
     io0("  Timed MPI...")
+    mpi_sol = fem2d_mpi_solve(Float64; L=L, verbose=false)
     mpi_time = @elapsed fem2d_mpi_solve(Float64; L=L, verbose=false)
 
     # Calculate ratio (MPI time / Native time)
     ratio = mpi_time / native_time
 
-    push!(results, (L=L, n=n, native=native_time, mpi=mpi_time, ratio=ratio))
+    # Compute sup norm of difference (on rank 0)
+    sup_diff = 0.0
+    if rank == 0
+        mpi_native = mpi_to_native(mpi_sol)
+        sup_diff = norm(native_sol.z - mpi_native.z, Inf)
+    end
+
+    push!(results, (L=L, n=n, native=native_time, mpi=mpi_time, ratio=ratio, diff=sup_diff))
 
     io0("  Native: $(round(native_time, digits=3))s")
     io0("  MPI:    $(round(mpi_time, digits=3))s")
     io0("  Ratio:  $(round(ratio, digits=2))x")
+    io0("  Diff:   $(sup_diff)")
 
 end
 
@@ -76,14 +89,15 @@ end
 io0("\n" * "="^70)
 io0("Summary")
 io0("="^70)
-io0("\n  L       n       Native          MPI             Ratio")
-io0("  -       -       ------          ---             -----")
+io0("\n  L       n       Native          MPI             Ratio       Diff")
+io0("  -       -       ------          ---             -----       ----")
 for r in results
     n_str = lpad(r.n, 7)
     native_str = lpad(round(r.native, digits=3), 10) * "s"
     mpi_str = lpad(round(r.mpi, digits=3), 10) * "s"
     ratio_str = lpad(round(r.ratio, digits=2), 8) * "x"
-    io0("  $(r.L)    $n_str    $native_str    $mpi_str    $ratio_str")
+    diff_str = @sprintf("%.2e", r.diff)
+    io0("  $(r.L)    $n_str    $native_str    $mpi_str    $ratio_str    $diff_str")
 end
 
 io0("\n  Ratio = MPI time / Native time (lower is better)")
@@ -114,7 +128,7 @@ if rank == 0
     <div class="info">
         <strong>Configuration:</strong><br>
         MPI ranks: $nranks<br>
-        Julia threads: $(Threads.nthreads())<br>
+        BLAS threads: $(LinearAlgebra.BLAS.get_num_threads())<br>
         Date: $(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))
     </div>
     <table>

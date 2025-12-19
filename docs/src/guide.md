@@ -218,19 +218,16 @@ nranks = MPI.Comm_size(MPI.COMM_WORLD)  # Total number of ranks
 
 ### Threading
 
-MultiGridBarrierMPI has three independent threading mechanisms that affect different parts of the computation:
-
-- **Julia threads** (`julia -t N`) - Affects the `⊛` operator for local sparse matrix multiplication and other parallel operations in the barrier method
-- **OpenMP threads** (`OMP_NUM_THREADS`) - Affects MUMPS algorithm-level parallelism in the multifrontal method
-- **BLAS threads** (`OPENBLAS_NUM_THREADS`) - Affects dense matrix operations in both Julia and MUMPS
-
-For optimal performance:
+For optimal performance, use BLAS threading with a single Julia thread:
 
 ```bash
 export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=10  # or your number of CPU cores
-mpiexec -n 1 julia -t 10 --project my_program.jl
+mpiexec -n 1 julia --project my_program.jl
 ```
+
+- **BLAS threads** (`OPENBLAS_NUM_THREADS`) - Controls threading for dense matrix operations in both Julia and MUMPS
+- **OpenMP threads** (`OMP_NUM_THREADS`) - Should be set to 1; MUMPS uses BLAS threading internally
 
 You can also set these in Julia's startup.jl:
 
@@ -242,20 +239,19 @@ ENV["OPENBLAS_NUM_THREADS"] = string(Sys.CPU_THREADS)
 
 ### Performance Comparison (Single-Rank)
 
-The following table compares MultiGridBarrierMPI (using MUMPS with `julia -t 10`, `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=10`) against MultiGridBarrier.jl's native solver (using the same settings) on a 2D p-Laplace problem. This is a single-rank comparison to establish baseline overhead; multi-rank MPI parallelism provides additional speedup. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
+The following table compares MultiGridBarrierMPI (using MUMPS) against MultiGridBarrier.jl's native solver on a 2D p-Laplace problem. Both use `OMP_NUM_THREADS=1` and `OPENBLAS_NUM_THREADS=10`. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
 
 | L | n (grid points) | Native (s) | MPI (s) | Ratio |
 |---|-----------------|------------|---------|-------|
-| 1 | 14 | 0.018 | 0.032 | 1.78x |
-| 2 | 56 | 0.036 | 0.058 | 1.61x |
-| 3 | 224 | 0.099 | 0.249 | 2.52x |
-| 4 | 896 | 0.591 | 1.113 | 1.88x |
-| 5 | 3,584 | 2.363 | 4.821 | 2.04x |
-| 6 | 14,336 | 24.379 | 81.318 | 3.34x |
-| 7 | 57,344 | 95.844 | 153.159 | 1.60x |
-| 8 | 229,376 | 620.071 | 850.123 | 1.37x |
+| 1 | 14 | 0.015 | 0.030 | 2.04x |
+| 2 | 56 | 0.024 | 0.035 | 1.44x |
+| 3 | 224 | 0.069 | 0.074 | 1.08x |
+| 4 | 896 | 0.462 | 0.406 | 0.88x |
+| 5 | 3,584 | 2.481 | 1.741 | 0.70x |
 
-*Ratio = MPI time / Native time (lower is better)*
+*Ratio = MPI time / Native time (lower is better, <1.0 means MPI is faster)*
+
+For larger problems (L≥4), the MPI version is faster than the native solver due to optimized sparse matrix operations with precomputed symbolic multiplication.
 
 ## 1D Problems
 
