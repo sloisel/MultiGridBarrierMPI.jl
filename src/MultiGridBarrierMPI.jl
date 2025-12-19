@@ -13,7 +13,7 @@ distributed types through LinearAlgebraMPI.
 - `fem3d_mpi`: Creates an MPI-based Geometry from fem3d parameters
 - `fem3d_mpi_solve`: Solves a fem3d problem using amgb with MPI types
 - `native_to_mpi`: Converts native Geometry to MPI distributed types
-- `mpi_to_native`: Converts MPI Geometry or AMGBSOL back to native Julia types
+- `mpi_to_native`: Converts MPI Geometry, AMGBSOL, or ParabolicSOL back to native Julia types
 
 # Usage
 ```julia
@@ -21,6 +21,7 @@ using MPI
 MPI.Init()
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
+using MultiGridBarrier: parabolic_solve
 
 # 1D: Create MPI geometry and solve
 g1d = fem1d_mpi(Float64; L=4)
@@ -33,6 +34,10 @@ sol = fem2d_mpi_solve(Float64; maxh=0.1, p=2.0, verbose=true)
 # 3D: Create MPI geometry and solve
 g3d = fem3d_mpi(Float64; L=2, k=3)
 sol3d = fem3d_mpi_solve(Float64; L=2, k=3, p=1.0, verbose=true)
+
+# Time-dependent (parabolic) solve - use parabolic_solve directly with MPI geometry
+g = fem1d_mpi(Float64; L=3)
+sol_para = parabolic_solve(g; h=0.1, p=2.0, verbose=true)
 
 # Convert solution back to native types for analysis
 sol_native = mpi_to_native(sol)
@@ -47,7 +52,7 @@ using LinearAlgebraMPI: VectorMPI_local, MatrixMPI_local, SparseMatrixMPI_local
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
-using MultiGridBarrier: Geometry, AMGBSOL, ParabolicSOL, fem1d, FEM1D, fem3d, FEM3D
+using MultiGridBarrier: Geometry, AMGBSOL, ParabolicSOL, fem1d, FEM1D, fem3d, FEM3D, parabolic_solve
 using PrecompileTools
 
 # ============================================================================
@@ -89,15 +94,6 @@ MultiGridBarrier.amgb_blockdiag(args::SparseMatrixMPI{T}...) where {T} = blockdi
 # ============================================================================
 # map_rows Implementation
 # ============================================================================
-
-"""
-    get_row_partition(x)
-
-Get the row partition vector from an MPI distributed type.
-"""
-get_row_partition(v::VectorMPI) = v.partition
-get_row_partition(M::MatrixMPI) = M.row_partition
-get_row_partition(A::SparseMatrixMPI) = A.row_partition
 
 """
     MultiGridBarrier.map_rows(f, A::Union{VectorMPI{T}, MatrixMPI{T}}...) where {T}

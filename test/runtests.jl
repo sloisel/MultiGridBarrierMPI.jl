@@ -23,4 +23,8 @@ end
     @testset "Quick integration test (1D)" begin
         run_mpi_test("test_quick.jl")
     end
+
+    @testset "Parabolic solver" begin
+        run_mpi_test("test_parabolic.jl")
+    end
 end
