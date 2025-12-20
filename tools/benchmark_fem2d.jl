@@ -23,15 +23,15 @@ io0(args...) = rank == 0 && println(args...)
 io0("Loading packages...")
 using MultiGridBarrier
 using MultiGridBarrierMPI
+using BenchmarkTools
 using Dates
 using LinearAlgebra
 using Printf
 
-
 io0("\n" * "="^70)
 io0("Benchmark: fem2d_solve - Native vs MPI")
 io0("  MPI ranks: $nranks, BLAS threads: $(LinearAlgebra.BLAS.get_num_threads())")
-io0("  Running L = 1:5")
+io0("  Running L = 1:8")
 io0("="^70)
 
 # Store results
@@ -45,26 +45,38 @@ for L in 1:8
 
     io0("\n--- L = $L (n = $n) ---")
 
-    # Native: warmup and timed run on rank 0 only
     native_time = 0.0
     native_sol = nothing
-    if rank == 0
-        io0("  Warmup Native...")
-        fem2d_solve(Float64; L=L, verbose=false)
-        io0("  Timed Native...")
-        native_sol = fem2d_solve(Float64; L=L, verbose=false)
-        native_time = @elapsed fem2d_solve(Float64; L=L, verbose=false)
+
+    if L <= 5
+        # Use BenchmarkTools for smaller problems
+        if rank == 0
+            io0("  Benchmarking Native...")
+            native_sol = fem2d_solve(Float64; L=L, verbose=false)
+            b = @benchmark fem2d_solve(Float64; L=$L, verbose=false)
+            native_time = median(b.times) / 1e9  # Convert ns to seconds
+        end
+        native_time = MPI.Bcast(native_time, 0, comm)
+
+        io0("  Benchmarking MPI...")
+        mpi_sol = fem2d_mpi_solve(Float64; L=L, verbose=false)
+        b = @benchmark fem2d_mpi_solve(Float64; L=$L, verbose=false)
+        mpi_time = median(b.times) / 1e9
+    else
+        # Single run for larger problems
+        if rank == 0
+            io0("  Running Native...")
+            native_time = @elapsed begin
+                native_sol = fem2d_solve(Float64; L=L, verbose=false)
+            end
+        end
+        native_time = MPI.Bcast(native_time, 0, comm)
+
+        io0("  Running MPI...")
+        mpi_time = @elapsed begin
+            mpi_sol = fem2d_mpi_solve(Float64; L=L, verbose=false)
+        end
     end
-
-    # Broadcast native_time to all ranks
-    native_time = MPI.Bcast(native_time, 0, comm)
-
-    # MPI: warmup and timed run on all ranks
-    io0("  Warmup MPI...")
-    fem2d_mpi_solve(Float64; L=L, verbose=false)
-    io0("  Timed MPI...")
-    mpi_sol = fem2d_mpi_solve(Float64; L=L, verbose=false)
-    mpi_time = @elapsed fem2d_mpi_solve(Float64; L=L, verbose=false)
 
     # Calculate ratio (MPI time / Native time)
     ratio = mpi_time / native_time
@@ -76,12 +88,17 @@ for L in 1:8
         sup_diff = norm(native_sol.z - mpi_native.z, Inf)
     end
 
-    push!(results, (L=L, n=n, native=native_time, mpi=mpi_time, ratio=ratio, diff=sup_diff))
+    # Get iteration counts
+    native_its = rank == 0 ? sum(native_sol.SOL_main.its) : 0
+    mpi_its = sum(mpi_sol.SOL_main.its)
 
-    io0("  Native: $(round(native_time, digits=3))s")
-    io0("  MPI:    $(round(mpi_time, digits=3))s")
+    push!(results, (L=L, n=n, native=native_time, mpi=mpi_time, ratio=ratio,
+                    native_its=native_its, mpi_its=mpi_its, diff=sup_diff))
+
+    io0("  Native: $(round(native_time, digits=3))s ($native_its its)")
+    io0("  MPI:    $(round(mpi_time, digits=3))s ($mpi_its its)")
     io0("  Ratio:  $(round(ratio, digits=2))x")
-    io0("  Diff:   $(sup_diff)")
+    io0("  Diff:   $(@sprintf("%.2e", sup_diff))")
 
 end
 
@@ -89,15 +106,16 @@ end
 io0("\n" * "="^70)
 io0("Summary")
 io0("="^70)
-io0("\n  L       n       Native          MPI             Ratio       Diff")
-io0("  -       -       ------          ---             -----       ----")
+io0("\n  L       n       Native          MPI             Ratio    Its(N/M)     Diff")
+io0("  -       -       ------          ---             -----    --------     ----")
 for r in results
     n_str = lpad(r.n, 7)
     native_str = lpad(round(r.native, digits=3), 10) * "s"
     mpi_str = lpad(round(r.mpi, digits=3), 10) * "s"
     ratio_str = lpad(round(r.ratio, digits=2), 8) * "x"
+    its_str = lpad("$(r.native_its)/$(r.mpi_its)", 8)
     diff_str = @sprintf("%.2e", r.diff)
-    io0("  $(r.L)    $n_str    $native_str    $mpi_str    $ratio_str    $diff_str")
+    io0("  $(r.L)    $n_str    $native_str    $mpi_str    $ratio_str    $its_str    $diff_str")
 end
 
 io0("\n  Ratio = MPI time / Native time (lower is better)")
@@ -138,6 +156,7 @@ if rank == 0
             <th>Native (s)</th>
             <th>MPI (s)</th>
             <th>Ratio</th>
+            <th>Diff</th>
         </tr>
 """
     for r in results
@@ -149,6 +168,7 @@ if rank == 0
             <td>$(round(r.native, digits=3))</td>
             <td>$(round(r.mpi, digits=3))</td>
             <td class="$ratio_class">$(round(r.ratio, digits=2))x</td>
+            <td>$(@sprintf("%.2e", r.diff))</td>
         </tr>
 """
     end
