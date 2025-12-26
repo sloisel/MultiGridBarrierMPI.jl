@@ -60,48 +60,63 @@ using PrecompileTools
 # Import the functions we need to extend
 import MultiGridBarrier: amgb_zeros, amgb_all_isfinite, amgb_diag, amgb_blockdiag, map_rows
 
-# amgb_zeros: Create zero matrices with appropriate type
-MultiGridBarrier.amgb_zeros(::SparseMatrixMPI{T}, m, n) where {T} =
-    SparseMatrixMPI{T}(spzeros(T, m, n))
-MultiGridBarrier.amgb_zeros(::LinearAlgebra.Adjoint{T, <:SparseMatrixMPI{T}}, m, n) where {T} =
-    SparseMatrixMPI{T}(spzeros(T, m, n))
-MultiGridBarrier.amgb_zeros(::MatrixMPI{T}, m, n) where {T} =
-    MatrixMPI(zeros(T, m, n))
-MultiGridBarrier.amgb_zeros(::LinearAlgebra.Adjoint{T, <:MatrixMPI{T}}, m, n) where {T} =
-    MatrixMPI(zeros(T, m, n))
+# amgb_zeros: Create distributed zero matrices/vectors using Base.zeros from LinearAlgebraMPI
+MultiGridBarrier.amgb_zeros(::SparseMatrixMPI{T,Ti,AV}, m, n) where {T,Ti,AV} =
+    zeros(SparseMatrixMPI{T,Ti,AV}, m, n)
+MultiGridBarrier.amgb_zeros(::LinearAlgebra.Adjoint{T, <:SparseMatrixMPI{T,Ti,AV}}, m, n) where {T,Ti,AV} =
+    zeros(SparseMatrixMPI{T,Ti,AV}, m, n)
+
+MultiGridBarrier.amgb_zeros(::MatrixMPI{T,AM}, m, n) where {T,AM} =
+    zeros(MatrixMPI{T,AM}, m, n)
+MultiGridBarrier.amgb_zeros(::LinearAlgebra.Adjoint{T, <:MatrixMPI{T,AM}}, m, n) where {T,AM} =
+    zeros(MatrixMPI{T,AM}, m, n)
 
 # amgb_zeros for vectors (used in multigrid coarsening)
-MultiGridBarrier.amgb_zeros(::Type{<:VectorMPI{T}}, m) where {T} = VectorMPI(zeros(T, m))
+MultiGridBarrier.amgb_zeros(::Type{VectorMPI{T,AV}}, m) where {T,AV} =
+    zeros(VectorMPI{T,AV}, m)
+MultiGridBarrier.amgb_zeros(::Type{<:VectorMPI{T}}, m) where {T} =
+    zeros(VectorMPI{T,Vector{T}}, m)
 
 # amgb_all_isfinite: Check if all elements are finite
-MultiGridBarrier.amgb_all_isfinite(z::VectorMPI{T}) where {T} = all(isfinite.(Vector(z)))
+# Uses GPU-friendly broadcasting and MPI reduction to avoid GPU->CPU transfer of full vector
+function MultiGridBarrier.amgb_all_isfinite(z::VectorMPI{T,AV}) where {T,AV}
+    # Check local elements using broadcasting (GPU-friendly)
+    local_all_finite = all(isfinite.(z.v))
+    # MPI reduce to get global result
+    MPI.Allreduce(local_all_finite, &, MPI.COMM_WORLD)
+end
 
 # amgb_diag: Create diagonal matrix from vector
-MultiGridBarrier.amgb_diag(::SparseMatrixMPI{T}, z::VectorMPI{T}, m=length(z), n=length(z)) where {T} =
+# SparseMatrixMPI with VectorMPI - preserves vector's array type in nzval
+MultiGridBarrier.amgb_diag(::SparseMatrixMPI{T,Ti,AV}, z::VectorMPI{T,AV2}, m=length(z), n=length(z)) where {T,Ti,AV,AV2} =
     spdiagm(m, n, 0 => z)
-MultiGridBarrier.amgb_diag(::SparseMatrixMPI{T}, z::Vector{T}, m=length(z), n=length(z)) where {T} =
+# SparseMatrixMPI with plain Vector - creates CPU-based sparse
+MultiGridBarrier.amgb_diag(::SparseMatrixMPI{T,Ti,AV}, z::Vector{T}, m=length(z), n=length(z)) where {T,Ti,AV} =
     SparseMatrixMPI{T}(spdiagm(m, n, 0 => z))
-MultiGridBarrier.amgb_diag(::MatrixMPI{T}, z::VectorMPI{T}, m=length(z), n=length(z)) where {T} =
+# MatrixMPI with VectorMPI - returns sparse (diagonal matrices are always sparse)
+MultiGridBarrier.amgb_diag(::MatrixMPI{T,AM}, z::VectorMPI{T,AV}, m=length(z), n=length(z)) where {T,AM,AV} =
     spdiagm(m, n, 0 => z)
-MultiGridBarrier.amgb_diag(::MatrixMPI{T}, z::Vector{T}, m=length(z), n=length(z)) where {T} =
+# MatrixMPI with plain Vector - creates CPU-based sparse
+MultiGridBarrier.amgb_diag(::MatrixMPI{T,AM}, z::Vector{T}, m=length(z), n=length(z)) where {T,AM} =
     SparseMatrixMPI{T}(spdiagm(m, n, 0 => z))
 
 # amgb_blockdiag: Block diagonal concatenation
-MultiGridBarrier.amgb_blockdiag(args::SparseMatrixMPI{T}...) where {T} = blockdiag(args...)
+MultiGridBarrier.amgb_blockdiag(args::SparseMatrixMPI{T,Ti,AV}...) where {T,Ti,AV} = blockdiag(args...)
 
 # ============================================================================
 # map_rows Implementation
 # ============================================================================
 
 """
-    MultiGridBarrier.map_rows(f, A::Union{VectorMPI{T}, MatrixMPI{T}}...) where {T}
+    MultiGridBarrier.map_rows(f, A::Union{VectorMPI, MatrixMPI}...)
 
 **MPI Collective**
 
 Apply a function `f` to corresponding rows across distributed MPI vectors and matrices.
 
 This is a thin wrapper around `LinearAlgebraMPI.map_rows`. See that function for
-full documentation.
+full documentation. The array type (CPU Vector/Matrix or GPU MtlVector/MtlMatrix)
+is preserved in the output.
 
 # Examples
 ```julia
@@ -109,15 +124,16 @@ full documentation.
 B = MatrixMPI(randn(5, 3))
 sums = map_rows(sum, B)  # Returns VectorMPI with 5 elements
 
-# Example 2: Compute [sum, product] for each row (returns matrix)
-stats = map_rows(x -> [sum(x), prod(x)]', B)  # Returns 5×2 MatrixMPI
+# Example 2: Compute [sum, product] for each row using SVector
+using StaticArrays
+stats = map_rows(x -> SVector(sum(x), prod(x)), B)  # Returns 5×2 MatrixMPI
 
 # Example 3: Combine matrix and vector row-wise
 C = VectorMPI(randn(5))
-combined = map_rows((x, y) -> [sum(x), prod(x), y[1]]', B, C)  # Returns 5×3 MatrixMPI
+combined = map_rows((x, y) -> SVector(sum(x), prod(x), y[1]), B, C)  # Returns 5×3 MatrixMPI
 ```
 """
-function MultiGridBarrier.map_rows(f, A::Union{VectorMPI{T}, MatrixMPI{T}}...) where {T}
+function MultiGridBarrier.map_rows(f, A::Union{VectorMPI, MatrixMPI}...)
     LinearAlgebraMPI.map_rows(f, A...)
 end
 
@@ -222,7 +238,7 @@ This is a collective operation. This function converts:
 - operators[key]::SparseMatrixMPI{T} -> operators[key]::SparseMatrixCSC{T,Int}
 - subspaces[key][i]::SparseMatrixMPI{T} -> subspaces[key][i]::SparseMatrixCSC{T,Int}
 """
-function mpi_to_native(g_mpi::Geometry{T, MatrixMPI{T}, VectorMPI{T}, <:SparseMatrixMPI{T}, Discretization}) where {T, Discretization}
+function mpi_to_native(g_mpi::Geometry{T, <:MatrixMPI{T}, <:VectorMPI{T}, <:SparseMatrixMPI{T}, Discretization}) where {T, Discretization}
     # Convert x (geometry coordinates) from MatrixMPI to Matrix
     x_native = Matrix(g_mpi.x)
 
@@ -379,11 +395,12 @@ end
 """
     _convert_to_native(x)
 
-Convert an MPI distributed type to its native Julia equivalent.
+Convert an MPI distributed type to its native Julia (CPU) equivalent.
+This gathers distributed data to rank 0 and converts to standard Julia arrays.
 """
-_convert_to_native(x::MatrixMPI{T}) where {T} = Matrix(x)
-_convert_to_native(x::VectorMPI{T}) where {T} = Vector(x)
-_convert_to_native(x::SparseMatrixMPI{T}) where {T} = SparseMatrixCSC(x)
+_convert_to_native(x::MatrixMPI{T,AM}) where {T,AM} = Matrix(x)
+_convert_to_native(x::VectorMPI{T,AV}) where {T,AV} = Vector(x)
+_convert_to_native(x::SparseMatrixMPI{T,Ti,AV}) where {T,Ti,AV} = SparseMatrixCSC(x)
 _convert_to_native(x) = x  # Fallback for non-MPI types
 
 # ============================================================================
