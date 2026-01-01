@@ -685,10 +685,10 @@ export amgb
 
     MPI.Init()
 
-    # Precompile 1D, 2D, and 3D solvers with minimal problem sizes
+    # Precompile 1D and 2D solvers with minimal problem sizes
+    # (3D is slower and shares most code paths with 2D)
     fem1d_mpi_solve(; L=1, tol=0.1, verbose=false)
     fem2d_mpi_solve(; L=1, tol=0.1, verbose=false)
-    fem3d_mpi_solve(; L=1, tol=0.1, verbose=false)
 end
 
 end # module MultiGridBarrierMPI
