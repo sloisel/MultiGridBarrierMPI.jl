@@ -50,7 +50,7 @@ using LinearAlgebraMPI: VectorMPI_local, MatrixMPI_local, SparseMatrixMPI_local
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
-using MultiGridBarrier: Geometry, AMGBSOL, ParabolicSOL, fem1d, FEM1D, fem3d, FEM3D, parabolic_solve
+using MultiGridBarrier: Geometry, AMGBSOL, ParabolicSOL, fem1d, FEM1D, fem3d, FEM3D, parabolic_solve, amgb
 using PrecompileTools
 
 # ============================================================================
@@ -58,7 +58,7 @@ using PrecompileTools
 # ============================================================================
 
 # Import the functions we need to extend
-import MultiGridBarrier: amgb_zeros, amgb_all_isfinite, amgb_diag, amgb_blockdiag, map_rows
+import MultiGridBarrier: amgb_zeros, amgb_all_isfinite, amgb_diag, amgb_blockdiag, map_rows, map_rows_gpu, vertex_indices, _raw_array, _to_cpu_array, _rows_to_svectors
 
 # amgb_zeros: Create distributed zero matrices/vectors using Base.zeros from LinearAlgebraMPI
 MultiGridBarrier.amgb_zeros(::SparseMatrixMPI{T,Ti,AV}, m, n) where {T,Ti,AV} =
@@ -72,10 +72,11 @@ MultiGridBarrier.amgb_zeros(::LinearAlgebra.Adjoint{T, <:MatrixMPI{T,AM}}, m, n)
     zeros(MatrixMPI{T,AM}, m, n)
 
 # amgb_zeros for vectors (used in multigrid coarsening)
+# Note: Only define the fully-parameterized version to ensure GPU types are preserved.
+# The <:VectorMPI{T} fallback was causing dispatch issues where Julia selected the
+# fallback even for fully-specified GPU types like VectorMPI{T,MtlVector{T}}.
 MultiGridBarrier.amgb_zeros(::Type{VectorMPI{T,AV}}, m) where {T,AV} =
     zeros(VectorMPI{T,AV}, m)
-MultiGridBarrier.amgb_zeros(::Type{<:VectorMPI{T}}, m) where {T} =
-    zeros(VectorMPI{T,Vector{T}}, m)
 
 # amgb_all_isfinite: Check if all elements are finite
 # Uses GPU-friendly broadcasting and MPI reduction to avoid GPU->CPU transfer of full vector
@@ -103,50 +104,63 @@ MultiGridBarrier.amgb_diag(::MatrixMPI{T,AM}, z::Vector{T}, m=length(z), n=lengt
 # amgb_blockdiag: Block diagonal concatenation
 MultiGridBarrier.amgb_blockdiag(args::SparseMatrixMPI{T,Ti,AV}...) where {T,Ti,AV} = blockdiag(args...)
 
-# ============================================================================
-# map_rows Implementation
-# ============================================================================
+# map_rows and map_rows_gpu: Delegate to LinearAlgebraMPI implementations
+# Use AbstractVectorMPI/AbstractMatrixMPI union types for clean dispatch
 
-"""
-    MultiGridBarrier.map_rows(f, A::Union{VectorMPI, MatrixMPI}...)
+const AbstractVectorMPI = VectorMPI
+const AbstractMatrixMPI = Union{MatrixMPI, SparseMatrixMPI}
+const AnyMPI = Union{VectorMPI, MatrixMPI, SparseMatrixMPI}
 
-**MPI Collective**
-
-Apply a function `f` to corresponding rows across distributed MPI vectors and matrices.
-
-This is a thin wrapper around `LinearAlgebraMPI.map_rows`. See that function for
-full documentation. The array type (CPU Vector/Matrix or GPU MtlVector/MtlMatrix)
-is preserved in the output.
-
-# Examples
-```julia
-# Example 1: Sum rows of a matrix
-B = MatrixMPI(randn(5, 3))
-sums = map_rows(sum, B)  # Returns VectorMPI with 5 elements
-
-# Example 2: Compute [sum, product] for each row using SVector
-using StaticArrays
-stats = map_rows(x -> SVector(sum(x), prod(x)), B)  # Returns 5×2 MatrixMPI
-
-# Example 3: Combine matrix and vector row-wise
-C = VectorMPI(randn(5))
-combined = map_rows((x, y) -> SVector(sum(x), prod(x), y[1]), B, C)  # Returns 5×3 MatrixMPI
-```
-"""
-function MultiGridBarrier.map_rows(f, A::Union{VectorMPI, MatrixMPI}...)
-    LinearAlgebraMPI.map_rows(f, A...)
+# map_rows: single method that handles all MPI combinations
+# The key insight: if ANY argument is an MPI type, delegate to LinearAlgebraMPI
+function MultiGridBarrier.map_rows(f, A::AnyMPI, args...)
+    LinearAlgebraMPI.map_rows(f, A, args...)
 end
+
+# map_rows_gpu: True GPU execution via LinearAlgebraMPI.map_rows_gpu
+# Barrier functions now receive row data via broadcasting (no scalar indexing)
+# thanks to Q.args being splatted here. This enables true GPU kernel execution.
+function MultiGridBarrier.map_rows_gpu(f, A::AnyMPI, args...)
+    LinearAlgebraMPI.map_rows_gpu(f, A, args...)  # True GPU path
+end
+
+# _raw_array: Extract raw array from MPI wrappers
+# VectorMPI.v is the local vector (e.g., MtlVector on GPU)
+# MatrixMPI.A is the local matrix (e.g., MtlMatrix on GPU)
+MultiGridBarrier._raw_array(x::VectorMPI) = x.v
+MultiGridBarrier._raw_array(x::MatrixMPI) = x.A
+
+# _rows_to_svectors: Extract raw array from MPI wrappers before processing
+# This ensures reinterpret views have GPU-compatible isbits parents
+MultiGridBarrier._rows_to_svectors(M::MatrixMPI) = MultiGridBarrier._rows_to_svectors(M.A)
+MultiGridBarrier._rows_to_svectors(v::VectorMPI) = v.v  # Vectors pass through as raw array
+
+# _to_cpu_array: Convert GPU arrays to CPU for barrier scalar indexing
+# For CPU arrays, this is a no-op
+MultiGridBarrier._to_cpu_array(x::Array) = x  # Already on CPU, no-op
+# For MPI wrappers, extract the underlying array and convert to CPU
+MultiGridBarrier._to_cpu_array(x::MatrixMPI) = Array(x.A)
+MultiGridBarrier._to_cpu_array(x::VectorMPI) = Array(x.v)
+
+# vertex_indices for MPI types
+MultiGridBarrier.vertex_indices(A::VectorMPI) = LinearAlgebraMPI.vertex_indices(A)
+MultiGridBarrier.vertex_indices(A::MatrixMPI) = LinearAlgebraMPI.vertex_indices(A)
 
 # ============================================================================
 # Type Conversion
 # ============================================================================
 
 """
-    native_to_mpi(g_native::Geometry{T, Matrix{T}, Vector{T}, SparseMatrixCSC{T,Int}, Discretization}) where {T, Discretization}
+    native_to_mpi(g_native::Geometry; backend=identity)
 
 **Collective**
 
 Convert a native Geometry object (with Julia arrays) to use MPI distributed types.
+
+# Arguments
+- `g_native`: Native Geometry with Julia arrays
+- `backend`: Backend conversion function (default: `identity` for CPU).
+  Use `LinearAlgebraMPI.mtl` for Metal GPU, `LinearAlgebraMPI.cuda` for CUDA (future).
 
 This is a collective operation. Each rank calls fem2d() to get the same native
 geometry, then this function converts:
@@ -154,8 +168,19 @@ geometry, then this function converts:
 - w::Vector{T} -> w::VectorMPI{T}
 - operators[key]::SparseMatrixCSC{T,Int} -> operators[key]::SparseMatrixMPI{T}
 - subspaces[key][i]::SparseMatrixCSC{T,Int} -> subspaces[key][i]::SparseMatrixMPI{T}
+
+# Example
+```julia
+# CPU (default)
+g_mpi = native_to_mpi(g_native)
+
+# Metal GPU
+using Metal
+g_mpi = native_to_mpi(g_native; backend=LinearAlgebraMPI.mtl)
+```
 """
-function native_to_mpi(g_native::Geometry{T, Matrix{T}, Vector{T}, SparseMatrixCSC{T,Int}, Discretization}) where {T, Discretization}
+function native_to_mpi(g_native::Geometry{T, Matrix{T}, Vector{T}, SparseMatrixCSC{T,Int}, Discretization};
+                       backend=identity) where {T, Discretization}
     # Convert x (geometry coordinates) to MatrixMPI (dense)
     x_mpi = MatrixMPI(g_native.x)
 
@@ -193,13 +218,29 @@ function native_to_mpi(g_native::Geometry{T, Matrix{T}, Vector{T}, SparseMatrixC
         coarsen_mpi[i] = SparseMatrixMPI{T}(g_native.coarsen[i])
     end
 
+    # Apply backend conversion (e.g., LinearAlgebraMPI.mtl for Metal GPU)
+    x_mpi = backend(x_mpi)
+    w_mpi = backend(w_mpi)
+    for key in keys(operators_mpi)
+        operators_mpi[key] = backend(operators_mpi[key])
+    end
+    for key in keys(subspaces_mpi)
+        subspaces_mpi[key] = [backend(m) for m in subspaces_mpi[key]]
+    end
+    refine_mpi = [backend(r) for r in refine_mpi]
+    coarsen_mpi = [backend(c) for c in coarsen_mpi]
+
     # Determine MPI types for Geometry type parameters
     XType = typeof(x_mpi)
     WType = typeof(w_mpi)
-    MType = typeof(operators_mpi[:id])  # Use id operator as representative
+    # Use SparseMatrixMPI{T} as MType - this is a UnionAll type that accepts
+    # any Ti and any AV (CPU Vector or GPU MtlVector), allowing mixed backends
+    # when GPU_MIN_SIZE threshold causes some operators to stay on CPU
+    MType = SparseMatrixMPI{T}
     DType = typeof(g_native.discretization)
 
     # Create typed dicts and vectors for Geometry constructor
+    # Using SparseMatrixMPI{T} allows heterogeneous backends in the same collection
     operators_typed = Dict{Symbol, MType}()
     for key in keys(operators_mpi)
         operators_typed[key] = operators_mpi[key]
@@ -207,11 +248,11 @@ function native_to_mpi(g_native::Geometry{T, Matrix{T}, Vector{T}, SparseMatrixC
 
     subspaces_typed = Dict{Symbol, Vector{MType}}()
     for key in keys(subspaces_mpi)
-        subspaces_typed[key] = convert(Vector{MType}, subspaces_mpi[key])
+        subspaces_typed[key] = Vector{MType}(subspaces_mpi[key])
     end
 
-    refine_typed = convert(Vector{MType}, refine_mpi)
-    coarsen_typed = convert(Vector{MType}, coarsen_mpi)
+    refine_typed = Vector{MType}(refine_mpi)
+    coarsen_typed = Vector{MType}(coarsen_mpi)
 
     # Create new Geometry with MPI types using explicit type parameters
     return Geometry{T, XType, WType, MType, DType}(
@@ -432,12 +473,12 @@ using MultiGridBarrierMPI
 g = fem1d_mpi(Float64; L=4)
 ```
 """
-function fem1d_mpi(::Type{T}=Float64; kwargs...) where {T}
+function fem1d_mpi(::Type{T}=Float64; backend=identity, kwargs...) where {T}
     # Create native 1D geometry
     g_native = fem1d(T; kwargs...)
 
-    # Convert to MPI types
-    return native_to_mpi(g_native)
+    # Convert to MPI types (with optional backend conversion)
+    return native_to_mpi(g_native; backend=backend)
 end
 
 """
@@ -499,12 +540,12 @@ using MultiGridBarrierMPI
 g = fem2d_mpi(Float64; L=3)
 ```
 """
-function fem2d_mpi(::Type{T}=Float64; kwargs...) where {T}
-    # Create native geometry
-    g_native = fem2d(; kwargs...)
+function fem2d_mpi(::Type{T}=Float64; backend=identity, kwargs...) where {T}
+    # Create native geometry with the specified element type
+    g_native = fem2d(T; kwargs...)
 
-    # Convert to MPI types
-    return native_to_mpi(g_native)
+    # Convert to MPI types (with optional backend conversion)
+    return native_to_mpi(g_native; backend=backend)
 end
 
 """
@@ -569,12 +610,12 @@ using MultiGridBarrierMPI
 g = fem3d_mpi(Float64; L=2, k=3)
 ```
 """
-function fem3d_mpi(::Type{T}=Float64; kwargs...) where {T}
+function fem3d_mpi(::Type{T}=Float64; backend=identity, kwargs...) where {T}
     # Create native 3D geometry
     g_native = fem3d(T; kwargs...)
 
-    # Convert to MPI types
-    return native_to_mpi(g_native)
+    # Convert to MPI types (with optional backend conversion)
+    return native_to_mpi(g_native; backend=backend)
 end
 
 """
@@ -625,6 +666,7 @@ export fem1d_mpi, fem1d_mpi_solve
 export fem2d_mpi, fem2d_mpi_solve
 export fem3d_mpi, fem3d_mpi_solve
 export native_to_mpi, mpi_to_native
+export amgb
 
 # ============================================================================
 # Precompilation Workload

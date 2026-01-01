@@ -13,6 +13,10 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
+[sources]
+LinearAlgebraMPI = {path = "/Users/sebastienloisel/Dropbox/2023/Spectral Barrier Method/julia/LinearAlgebraMPI.jl"}
+MultiGridBarrier = {path = "/Users/sebastienloisel/Dropbox/2023/Spectral Barrier Method/julia/MultiGridBarrier.jl"}
+
 [compat]
 BenchmarkTools = "1.6"
 LinearAlgebraMPI = "0.1"
@@ -23,9 +27,10 @@ julia = "1.10"
 
 [extras]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 benchmark = ["BenchmarkTools", "Statistics"]
-test = ["Test"]
+test = ["Test", "StaticArrays"]
