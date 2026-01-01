@@ -47,6 +47,9 @@ jobs:
           PYTHON: python
         run: julia --project=. -e 'using Pkg; Pkg.add(name="OpenSSL_jll", version="3.0"); Pkg.instantiate(); Pkg.build("PyCall")'
 
+      - name: Precompile package
+        uses: julia-actions/julia-buildpkg@v1
+
       - name: Run tests with coverage
         uses: julia-actions/julia-runtest@v1
         with:
