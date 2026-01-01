@@ -37,12 +37,16 @@ if rank == 0
     flush(stdout)
 end
 
+if rank == 0; println("[DEBUG] Creating geometry..."); flush(stdout); end
 g = fem1d_mpi(Float64; L=2)
+if rank == 0; println("[DEBUG] Geometry created"); flush(stdout); end
 @test g isa MultiGridBarrier.Geometry
 @test g.x isa MatrixMPI
 
 # Run parabolic solve with small time steps
+if rank == 0; println("[DEBUG] Starting parabolic_solve..."); flush(stdout); end
 sol = parabolic_solve(g; h=0.5, t1=1.0, p=2.0, verbose=false)
+if rank == 0; println("[DEBUG] parabolic_solve complete"); flush(stdout); end
 @test sol isa ParabolicSOL
 @test sol.geometry === g
 @test length(sol.ts) >= 2  # At least initial and final time
