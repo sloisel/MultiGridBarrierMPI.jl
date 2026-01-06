@@ -50,6 +50,12 @@ jobs:
       - name: Precompile package
         uses: julia-actions/julia-buildpkg@v1
 
+      - name: Debug with tmate
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+        timeout-minutes: 30
+
       - name: Run tests with coverage
         uses: julia-actions/julia-runtest@v1
         with:
