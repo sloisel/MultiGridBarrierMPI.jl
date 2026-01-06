@@ -58,7 +58,7 @@ using PrecompileTools
 # ============================================================================
 
 # Import the functions we need to extend
-import MultiGridBarrier: amgb_zeros, amgb_all_isfinite, amgb_assert_uniform, amgb_diag, amgb_blockdiag, map_rows, map_rows_gpu, vertex_indices, _raw_array, _to_cpu_array, _rows_to_svectors
+import MultiGridBarrier: amgb_zeros, amgb_all_isfinite, amgb_diag, amgb_blockdiag, map_rows, map_rows_gpu, vertex_indices, _raw_array, _to_cpu_array, _rows_to_svectors
 
 # amgb_zeros: Create distributed zero matrices/vectors using Base.zeros from LinearAlgebraMPI
 MultiGridBarrier.amgb_zeros(::SparseMatrixMPI{T,Ti,AV}, m, n) where {T,Ti,AV} =
@@ -85,112 +85,6 @@ function MultiGridBarrier.amgb_all_isfinite(z::VectorMPI{T,AV}) where {T,AV}
     local_all_finite = all(isfinite.(z.v))
     # MPI reduce to get global result
     MPI.Allreduce(local_all_finite, &, MPI.COMM_WORLD)
-end
-
-# amgb_assert_uniform: Assert that a scalar value is identical on all MPI ranks
-# Gathers all values to rank 0, checks uniformity, and aborts if not uniform
-function MultiGridBarrier.amgb_assert_uniform(x::T, msg::String="") where T<:Number
-    comm = MPI.COMM_WORLD
-    rank = MPI.Comm_rank(comm)
-    nranks = MPI.Comm_size(comm)
-
-    # Gather all values to rank 0
-    all_values = MPI.Gather(x, 0, comm)
-
-    # Check uniformity on rank 0
-    is_uniform = true
-    if rank == 0
-        ref_val = all_values[1]
-        for i in 2:nranks
-            # Use isequal for exact equality (handles NaN correctly: isequal(NaN,NaN)=true)
-            if !isequal(all_values[i], ref_val)
-                is_uniform = false
-                break
-            end
-        end
-    end
-
-    # Broadcast uniformity result to all ranks
-    is_uniform = MPI.Bcast(is_uniform, 0, comm)
-
-    if !is_uniform
-        # Print error info on rank 0 only (use stdout for visibility)
-        if rank == 0
-            println("\n" * "="^60)
-            println("MPI UNIFORMITY ASSERTION FAILED: $msg")
-            println("="^60)
-            println("Values across ranks:")
-            for i in 1:nranks
-                println("  Rank $(i-1): $(all_values[i])")
-            end
-            println("\nStack trace:")
-            for frame in stacktrace()
-                println("  ", frame)
-            end
-            println("="^60)
-            flush(stdout)
-        end
-
-        # Small delay to ensure output is flushed before abort
-        sleep(0.1)
-
-        # Abort all ranks
-        MPI.Abort(comm, 1)
-    end
-
-    return nothing
-end
-
-# Also handle boolean specifically for converged flags
-function MultiGridBarrier.amgb_assert_uniform(x::Bool, msg::String="")
-    comm = MPI.COMM_WORLD
-    rank = MPI.Comm_rank(comm)
-    nranks = MPI.Comm_size(comm)
-
-    # Convert to Int for MPI (some MPI implementations don't handle Bool well)
-    x_int = Int32(x)
-    all_values = MPI.Gather(x_int, 0, comm)
-
-    # Check uniformity on rank 0
-    is_uniform = true
-    if rank == 0
-        ref_val = all_values[1]
-        for i in 2:nranks
-            if all_values[i] != ref_val
-                is_uniform = false
-                break
-            end
-        end
-    end
-
-    # Broadcast uniformity result to all ranks
-    is_uniform = MPI.Bcast(is_uniform, 0, comm)
-
-    if !is_uniform
-        # Print error info on rank 0 only (use stdout for visibility)
-        if rank == 0
-            println("\n" * "="^60)
-            println("MPI UNIFORMITY ASSERTION FAILED: $msg")
-            println("="^60)
-            println("Boolean values across ranks:")
-            for i in 1:nranks
-                println("  Rank $(i-1): $(Bool(all_values[i]))")
-            end
-            println("\nStack trace:")
-            for frame in stacktrace()
-                println("  ", frame)
-            end
-            println("="^60)
-            flush(stdout)
-        end
-
-        # Small delay to ensure output is flushed before abort
-        sleep(0.1)
-
-        MPI.Abort(comm, 1)
-    end
-
-    return nothing
 end
 
 # amgb_diag: Create diagonal matrix from vector

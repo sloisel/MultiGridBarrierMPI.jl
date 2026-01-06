@@ -37,18 +37,10 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.11'
+          version: '1.10'
           arch: x64
 
-      # Skip cache - we need fresh builds from git main branches
-      # - uses: julia-actions/cache@v2
-
-      - name: Clear stale compiled packages and clones
-        run: |
-          rm -rf ~/.julia/compiled
-          rm -rf ~/.julia/packages/LinearAlgebraMPI
-          rm -rf ~/.julia/packages/MultiGridBarrier
-          rm -rf ~/.julia/clones
+      - uses: julia-actions/cache@v2
 
       - name: Build package with system Python
         env:
@@ -57,18 +49,14 @@ jobs:
           julia --project=. -e '
             using Pkg
             Pkg.add(name="OpenSSL_jll", version="3.0")
+            Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git", rev="main")
+            Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git", rev="main")
             Pkg.instantiate()
             Pkg.build("PyCall")
           '
 
       - name: Precompile package
         uses: julia-actions/julia-buildpkg@v1
-
-      - name: Setup tmate debug session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-        timeout-minutes: 30
 
       - name: Run tests with coverage
         uses: julia-actions/julia-runtest@v1
@@ -110,17 +98,9 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.11'
+          version: '1.10'
 
-      # Skip cache - we need fresh builds from git main branches
-      # - uses: julia-actions/cache@v2
-
-      - name: Clear stale compiled packages and clones
-        run: |
-          rm -rf ~/.julia/compiled
-          rm -rf ~/.julia/packages/LinearAlgebraMPI
-          rm -rf ~/.julia/packages/MultiGridBarrier
-          rm -rf ~/.julia/clones
+      - uses: julia-actions/cache@v2
 
       - name: Configure doc environment
         env:
@@ -130,6 +110,8 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.add(name="OpenSSL_jll", version="3.0")
+            Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git", rev="main")
+            Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git", rev="main")
             Pkg.instantiate()
             Pkg.build("PyCall")
           '
