@@ -45,16 +45,18 @@ jobs:
       - name: Build package with system Python
         env:
           PYTHON: python
-        run: julia --project=. -e 'using Pkg; Pkg.add(name="OpenSSL_jll", version="3.0"); Pkg.instantiate(); Pkg.build("PyCall")'
+        run: |
+          julia --project=. -e '
+            using Pkg
+            Pkg.add(name="OpenSSL_jll", version="3.0")
+            # Install MultiGridBarrier from GitHub (with uniformity assertion patches)
+            Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git")
+            Pkg.instantiate()
+            Pkg.build("PyCall")
+          '
 
       - name: Precompile package
         uses: julia-actions/julia-buildpkg@v1
-
-      - name: Debug with tmate
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-        timeout-minutes: 30
 
       - name: Run tests with coverage
         uses: julia-actions/julia-runtest@v1
@@ -108,6 +110,8 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.add(name="OpenSSL_jll", version="3.0")
+            # Install MultiGridBarrier from GitHub (with uniformity assertion patches)
+            Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git")
             Pkg.instantiate()
             Pkg.build("PyCall")
           '
