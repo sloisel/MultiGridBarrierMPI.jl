@@ -49,8 +49,9 @@ jobs:
           julia --project=. -e '
             using Pkg
             Pkg.add(name="OpenSSL_jll", version="3.0")
-            # Install from GitHub main branch (with MPI fixes)
-            # Use rev="main" to get latest commit, not just tagged version
+            # Remove cached versions first, then install from GitHub main branch
+            try Pkg.rm("LinearAlgebraMPI") catch end
+            try Pkg.rm("MultiGridBarrier") catch end
             Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git", rev="main")
             Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git", rev="main")
             Pkg.instantiate()
@@ -112,8 +113,9 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.add(name="OpenSSL_jll", version="3.0")
-            # Install from GitHub main branch (with MPI fixes)
-            # Use rev="main" to get latest commit, not just tagged version
+            # Remove cached versions first, then install from GitHub main branch
+            try Pkg.rm("LinearAlgebraMPI") catch end
+            try Pkg.rm("MultiGridBarrier") catch end
             Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git", rev="main")
             Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git", rev="main")
             Pkg.instantiate()
