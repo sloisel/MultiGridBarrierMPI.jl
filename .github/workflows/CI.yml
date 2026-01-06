@@ -37,7 +37,7 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.10'
+          version: '1.11'
           arch: x64
 
       # Skip cache - we need fresh builds from git main branches
@@ -110,7 +110,7 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.10'
+          version: '1.11'
 
       # Skip cache - we need fresh builds from git main branches
       # - uses: julia-actions/cache@v2
