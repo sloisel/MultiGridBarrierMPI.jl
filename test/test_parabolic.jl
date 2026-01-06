@@ -45,7 +45,7 @@ if rank == 0; println("[DEBUG] Geometry created"); flush(stdout); end
 
 # Run parabolic solve with small time steps
 if rank == 0; println("[DEBUG] Starting parabolic_solve..."); flush(stdout); end
-sol = parabolic_solve(g; h=0.5, t1=1.0, p=2.0, verbose=false, logfile=io0())
+sol = parabolic_solve(g; h=0.5, t1=1.0, p=2.0, verbose=false)
 if rank == 0; println("[DEBUG] parabolic_solve complete"); flush(stdout); end
 @test sol isa ParabolicSOL
 @test sol.geometry === g
