@@ -57,8 +57,6 @@ jobs:
           julia --project=. -e '
             using Pkg
             Pkg.add(name="OpenSSL_jll", version="3.0")
-            Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git", rev="main")
-            Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git", rev="main")
             Pkg.instantiate()
             Pkg.build("PyCall")
           '
@@ -132,8 +130,6 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.add(name="OpenSSL_jll", version="3.0")
-            Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git", rev="main")
-            Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git", rev="main")
             Pkg.instantiate()
             Pkg.build("PyCall")
           '
