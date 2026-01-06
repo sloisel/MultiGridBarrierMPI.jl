@@ -102,18 +102,10 @@ function MultiGridBarrier.amgb_assert_uniform(x::T, msg::String="") where T<:Num
     if rank == 0
         ref_val = all_values[1]
         for i in 2:nranks
-            # Use exact equality for booleans, tolerance for floats
-            if T <: Bool
-                if all_values[i] != ref_val
-                    is_uniform = false
-                    break
-                end
-            else
-                # For floats, check relative tolerance
-                if !isapprox(all_values[i], ref_val; rtol=1e-10, atol=1e-14)
-                    is_uniform = false
-                    break
-                end
+            # Use isequal for exact equality (handles NaN correctly: isequal(NaN,NaN)=true)
+            if !isequal(all_values[i], ref_val)
+                is_uniform = false
+                break
             end
         end
     end
@@ -122,27 +114,25 @@ function MultiGridBarrier.amgb_assert_uniform(x::T, msg::String="") where T<:Num
     is_uniform = MPI.Bcast(is_uniform, 0, comm)
 
     if !is_uniform
-        # Print error info on rank 0 only
+        # Print error info on rank 0 only (use stdout for visibility)
         if rank == 0
-            println(stderr, "\n" * "="^60)
-            println(stderr, "MPI UNIFORMITY ASSERTION FAILED: $msg")
-            println(stderr, "="^60)
-            println(stderr, "Values across ranks:")
+            println("\n" * "="^60)
+            println("MPI UNIFORMITY ASSERTION FAILED: $msg")
+            println("="^60)
+            println("Values across ranks:")
             for i in 1:nranks
-                println(stderr, "  Rank $(i-1): $(all_values[i])")
+                println("  Rank $(i-1): $(all_values[i])")
             end
-            println(stderr, "\nStack trace:")
-            for (exc, bt) in current_exceptions()
-                showerror(stderr, exc, bt)
-                println(stderr)
-            end
-            # Print current stack
+            println("\nStack trace:")
             for frame in stacktrace()
-                println(stderr, "  ", frame)
+                println("  ", frame)
             end
-            println(stderr, "="^60)
-            flush(stderr)
+            println("="^60)
+            flush(stdout)
         end
+
+        # Small delay to ensure output is flushed before abort
+        sleep(0.1)
 
         # Abort all ranks
         MPI.Abort(comm, 1)
@@ -177,21 +167,25 @@ function MultiGridBarrier.amgb_assert_uniform(x::Bool, msg::String="")
     is_uniform = MPI.Bcast(is_uniform, 0, comm)
 
     if !is_uniform
+        # Print error info on rank 0 only (use stdout for visibility)
         if rank == 0
-            println(stderr, "\n" * "="^60)
-            println(stderr, "MPI UNIFORMITY ASSERTION FAILED: $msg")
-            println(stderr, "="^60)
-            println(stderr, "Boolean values across ranks:")
+            println("\n" * "="^60)
+            println("MPI UNIFORMITY ASSERTION FAILED: $msg")
+            println("="^60)
+            println("Boolean values across ranks:")
             for i in 1:nranks
-                println(stderr, "  Rank $(i-1): $(Bool(all_values[i]))")
+                println("  Rank $(i-1): $(Bool(all_values[i]))")
             end
-            println(stderr, "\nStack trace:")
+            println("\nStack trace:")
             for frame in stacktrace()
-                println(stderr, "  ", frame)
+                println("  ", frame)
             end
-            println(stderr, "="^60)
-            flush(stderr)
+            println("="^60)
+            flush(stdout)
         end
+
+        # Small delay to ensure output is flushed before abort
+        sleep(0.1)
 
         MPI.Abort(comm, 1)
     end
