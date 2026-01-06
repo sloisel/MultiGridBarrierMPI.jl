@@ -49,7 +49,8 @@ jobs:
           julia --project=. -e '
             using Pkg
             Pkg.add(name="OpenSSL_jll", version="3.0")
-            # Install MultiGridBarrier from GitHub (with uniformity assertion patches)
+            # Install from GitHub (with MPI fixes)
+            Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git")
             Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git")
             Pkg.instantiate()
             Pkg.build("PyCall")
@@ -110,7 +111,8 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.add(name="OpenSSL_jll", version="3.0")
-            # Install MultiGridBarrier from GitHub (with uniformity assertion patches)
+            # Install from GitHub (with MPI fixes)
+            Pkg.add(url="https://github.com/sloisel/LinearAlgebraMPI.jl.git")
             Pkg.add(url="https://github.com/sloisel/MultiGridBarrier.jl.git")
             Pkg.instantiate()
             Pkg.build("PyCall")
