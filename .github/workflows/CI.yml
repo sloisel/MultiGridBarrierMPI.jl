@@ -43,11 +43,12 @@ jobs:
       # Skip cache - we need fresh builds from git main branches
       # - uses: julia-actions/cache@v2
 
-      - name: Clear stale compiled packages
+      - name: Clear stale compiled packages and clones
         run: |
           rm -rf ~/.julia/compiled
           rm -rf ~/.julia/packages/LinearAlgebraMPI
           rm -rf ~/.julia/packages/MultiGridBarrier
+          rm -rf ~/.julia/clones
 
       - name: Build package with system Python
         env:
@@ -116,11 +117,12 @@ jobs:
       # Skip cache - we need fresh builds from git main branches
       # - uses: julia-actions/cache@v2
 
-      - name: Clear stale compiled packages
+      - name: Clear stale compiled packages and clones
         run: |
           rm -rf ~/.julia/compiled
           rm -rf ~/.julia/packages/LinearAlgebraMPI
           rm -rf ~/.julia/packages/MultiGridBarrier
+          rm -rf ~/.julia/clones
 
       - name: Configure doc environment
         env:
