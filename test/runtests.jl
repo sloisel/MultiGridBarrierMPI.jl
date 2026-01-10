@@ -12,8 +12,8 @@ try
     @eval using MultiGridBarrierMPI
     println("  - MultiGridBarrierMPI loaded")
     flush(stdout)
-    @eval using LinearAlgebraMPI
-    println("  - LinearAlgebraMPI loaded")
+    @eval using HPCLinearAlgebra
+    println("  - HPCLinearAlgebra loaded")
     flush(stdout)
     @eval using MultiGridBarrier
     println("  - MultiGridBarrier loaded")
@@ -54,19 +54,27 @@ println("=== Starting test suite ===")
 flush(stdout)
 
 @testset "MultiGridBarrierMPI.jl" begin
-    println(">>> Test 1/3: Helper functions")
+    println(">>> Test 1/4: Helper functions")
     flush(stdout)
     @testset "Helper functions" begin
         run_mpi_test("test_helpers.jl")
     end
 
-    println(">>> Test 2/3: Quick integration test (1D)")
+    println(">>> Test 2/4: Quick integration test (1D)")
     flush(stdout)
     @testset "Quick integration test (1D)" begin
         run_mpi_test("test_quick.jl")
     end
 
-    println(">>> Test 3/3: Parabolic solver")
+    println(">>> Test 3/4: 2D integration test (with CUDA if available)")
+    flush(stdout)
+    @testset "2D integration test" begin
+        # Use 2 ranks for CUDA tests to match typical 2-GPU setup
+        # (NCCL fails when ranks exceed available GPUs)
+        run_mpi_test("test_2d.jl"; nprocs=2)
+    end
+
+    println(">>> Test 4/4: Parabolic solver")
     flush(stdout)
     @testset "Parabolic solver" begin
         run_mpi_test("test_parabolic.jl")

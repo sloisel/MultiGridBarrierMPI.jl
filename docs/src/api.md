@@ -48,9 +48,9 @@ When converting from native Julia types to MPI distributed types:
 
 | Native Type | MPI Type | Usage |
 |-------------|----------|-------|
-| `Matrix{T}` | `MatrixMPI{T}` | Geometry coordinates, dense data |
-| `Vector{T}` | `VectorMPI{T}` | Weights, dense vectors |
-| `SparseMatrixCSC{T,Int}` | `SparseMatrixMPI{T}` | Sparse operators, subspace matrices |
+| `Matrix{T}` | `HPCMatrix{T}` | Geometry coordinates, dense data |
+| `Vector{T}` | `HPCVector{T}` | Weights, dense vectors |
+| `SparseMatrixCSC{T,Int}` | `HPCSparseMatrix{T}` | Sparse operators, subspace matrices |
 
 ### MPI to Native Conversions
 
@@ -58,9 +58,9 @@ When converting from MPI distributed types back to native Julia types:
 
 | MPI Type | Native Type |
 |----------|-------------|
-| `MatrixMPI{T}` | `Matrix{T}` |
-| `VectorMPI{T}` | `Vector{T}` |
-| `SparseMatrixMPI{T}` | `SparseMatrixCSC{T,Int}` |
+| `HPCMatrix{T}` | `Matrix{T}` |
+| `HPCVector{T}` | `Vector{T}` |
+| `HPCSparseMatrix{T}` | `SparseMatrixCSC{T,Int}` |
 
 ## Geometry Structure
 
@@ -73,14 +73,14 @@ Geometry{T, Matrix{T}, Vector{T}, SparseMatrixCSC{T,Int}, Discretization}
 
 **MPI Geometry:**
 ```julia
-Geometry{T, MatrixMPI{T}, VectorMPI{T}, SparseMatrixMPI{T}, Discretization}
+Geometry{T, HPCMatrix{T}, HPCVector{T}, HPCSparseMatrix{T}, Discretization}
 ```
 
 ### Fields
 
 - **`discretization`**: Discretization information (domain, mesh, etc.)
-- **`x`**: Geometry coordinates (Matrix or MatrixMPI)
-- **`w`**: Quadrature weights (Vector or VectorMPI)
+- **`x`**: Geometry coordinates (Matrix or HPCMatrix)
+- **`w`**: Quadrature weights (Vector or HPCVector)
 - **`operators`**: Dictionary of operators (id, dx, dy, etc.)
 - **`subspaces`**: Dictionary of subspace projection matrices
 - **`refine`**: Vector of refinement matrices (coarse -> fine)
@@ -104,12 +104,12 @@ The `AMGBSOL` type from MultiGridBarrier contains the complete solution:
 
 ## MPI and IO Utilities
 
-### LinearAlgebraMPI.io0()
+### HPCLinearAlgebra.io0()
 
 Returns an IO stream that only writes on rank 0:
 
 ```julia
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 
 println(io0(), "This prints once from rank 0")
 ```
@@ -132,7 +132,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 using MultiGridBarrier
 using LinearAlgebra
 
@@ -163,7 +163,7 @@ id_native = g_native.operators[:id]  # SparseMatrixCSC
 
 # MPI geometry
 g_mpi = native_to_mpi(g_native)
-id_mpi = g_mpi.operators[:id]  # SparseMatrixMPI
+id_mpi = g_mpi.operators[:id]  # HPCSparseMatrix
 
 # Convert back if needed
 id_back = SparseMatrixCSC(id_mpi)  # SparseMatrixCSC

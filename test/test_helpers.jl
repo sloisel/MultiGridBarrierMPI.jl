@@ -15,8 +15,8 @@ end
 using MultiGridBarrierMPI
 
 # Now load dependencies for tests
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using StaticArrays: SVector
@@ -44,56 +44,56 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
         flush(stdout)
     end
 
-    # Test 1: amgb_zeros with SparseMatrixMPI
+    # Test 1: amgb_zeros with HPCSparseMatrix
     if rank == 0
-        println("[DEBUG] Test 1: amgb_zeros with SparseMatrixMPI ($backend_name)")
+        println("[DEBUG] Test 1: amgb_zeros with HPCSparseMatrix ($backend_name)")
         flush(stdout)
     end
 
-    A_proto = backend(SparseMatrixMPI{T}(spzeros(T, 10, 10)))
+    A_proto = HPCSparseMatrix(spzeros(T, 10, 10), backend)
     Z = MultiGridBarrierMPI.amgb_zeros(A_proto, 5, 5)
-    @test Z isa SparseMatrixMPI
+    @test Z isa HPCSparseMatrix
     @test size(Z) == (5, 5)
 
-    # Test 2: amgb_zeros with MatrixMPI
+    # Test 2: amgb_zeros with HPCMatrix
     if rank == 0
-        println("[DEBUG] Test 2: amgb_zeros with MatrixMPI dense matrix ($backend_name)")
+        println("[DEBUG] Test 2: amgb_zeros with HPCMatrix dense matrix ($backend_name)")
         flush(stdout)
     end
 
-    A_proto_dense = backend(MatrixMPI(zeros(T, 10, 10)))
+    A_proto_dense = HPCMatrix(zeros(T, 10, 10), backend)
     Z_dense = MultiGridBarrierMPI.amgb_zeros(A_proto_dense, 4, 6)
-    @test Z_dense isa MatrixMPI
+    @test Z_dense isa HPCMatrix
     @test size(Z_dense) == (4, 6)
 
-    # Test 3: amgb_all_isfinite with valid VectorMPI
+    # Test 3: amgb_all_isfinite with valid HPCVector
     if rank == 0
         println("[DEBUG] Test 3: amgb_all_isfinite with finite values ($backend_name)")
         flush(stdout)
     end
 
-    v_finite = backend(VectorMPI(T[1, 2, 3]))
+    v_finite = HPCVector(T[1, 2, 3], backend)
     @test MultiGridBarrierMPI.amgb_all_isfinite(v_finite) == true
 
-    # Test 4: amgb_all_isfinite with invalid VectorMPI
+    # Test 4: amgb_all_isfinite with invalid HPCVector
     if rank == 0
         println("[DEBUG] Test 4: amgb_all_isfinite with infinite values ($backend_name)")
         flush(stdout)
     end
 
-    v_inf = backend(VectorMPI(T[1, Inf, 3]))
+    v_inf = HPCVector(T[1, Inf, 3], backend)
     @test MultiGridBarrierMPI.amgb_all_isfinite(v_inf) == false
 
-    # Test 5: amgb_diag with VectorMPI
+    # Test 5: amgb_diag with HPCVector
     if rank == 0
-        println("[DEBUG] Test 5: amgb_diag with VectorMPI ($backend_name)")
+        println("[DEBUG] Test 5: amgb_diag with HPCVector ($backend_name)")
         flush(stdout)
     end
 
-    A_proto = backend(SparseMatrixMPI{T}(spzeros(T, 10, 10)))
-    v = backend(VectorMPI(T[1, 2, 3]))
+    A_proto = HPCSparseMatrix(spzeros(T, 10, 10), backend)
+    v = HPCVector(T[1, 2, 3], backend)
     D = MultiGridBarrierMPI.amgb_diag(A_proto, v)
-    @test D isa SparseMatrixMPI
+    @test D isa HPCSparseMatrix
     @test size(D) == (3, 3)
 
     # Test 6: amgb_diag with Vector (native, not MPI)
@@ -102,10 +102,10 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
         flush(stdout)
     end
 
-    A_proto = backend(SparseMatrixMPI{T}(spzeros(T, 10, 10)))
+    A_proto = HPCSparseMatrix(spzeros(T, 10, 10), backend)
     v_native = T[1, 2, 3, 4]
     D = MultiGridBarrierMPI.amgb_diag(A_proto, v_native)
-    @test D isa SparseMatrixMPI
+    @test D isa HPCSparseMatrix
     @test size(D) == (4, 4)
 
     # Test 7: amgb_blockdiag
@@ -114,36 +114,36 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
         flush(stdout)
     end
 
-    A = backend(SparseMatrixMPI{T}(sparse(T(1) * I(2))))
-    B = backend(SparseMatrixMPI{T}(sparse(T(1) * I(3))))
+    A = HPCSparseMatrix(sparse(T(1) * I(2)), backend)
+    B = HPCSparseMatrix(sparse(T(1) * I(3)), backend)
     C = MultiGridBarrierMPI.amgb_blockdiag(A, B)
-    @test C isa SparseMatrixMPI
+    @test C isa HPCSparseMatrix
     @test size(C) == (5, 5)
 
-    # Test 8: map_rows with MatrixMPI (scalar output)
+    # Test 8: map_rows with HPCMatrix (scalar output)
     if rank == 0
-        println("[DEBUG] Test 8: map_rows with MatrixMPI (scalar output) ($backend_name)")
+        println("[DEBUG] Test 8: map_rows with HPCMatrix (scalar output) ($backend_name)")
         flush(stdout)
     end
 
-    x = backend(MatrixMPI(T[1 2; 3 4; 5 6]))
+    x = HPCMatrix(T[1 2; 3 4; 5 6], backend)
     result = MultiGridBarrierMPI.map_rows(row -> sum(row), x)
-    @test result isa VectorMPI
+    @test result isa HPCVector
     @test length(result) == 3
     result_native = Vector(TestUtils.to_cpu(result))
     @test result_native[1] == T(3)   # 1+2
     @test result_native[2] == T(7)   # 3+4
     @test result_native[3] == T(11)  # 5+6
 
-    # Test 9: map_rows with MatrixMPI (SVector output)
+    # Test 9: map_rows with HPCMatrix (SVector output)
     if rank == 0
-        println("[DEBUG] Test 9: map_rows with MatrixMPI (SVector output) ($backend_name)")
+        println("[DEBUG] Test 9: map_rows with HPCMatrix (SVector output) ($backend_name)")
         flush(stdout)
     end
 
-    x = backend(MatrixMPI(T[1 2; 3 4]))
+    x = HPCMatrix(T[1 2; 3 4], backend)
     result = MultiGridBarrierMPI.map_rows(row -> SVector(sum(row), prod(row)), x)
-    @test result isa MatrixMPI
+    @test result isa HPCMatrix
     @test size(result) == (2, 2)
     result_native = Matrix(TestUtils.to_cpu(result))
     @test result_native[1, 1] == T(3)   # sum of row 1
@@ -157,10 +157,10 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
         flush(stdout)
     end
 
-    x = backend(MatrixMPI(T[1 2; 3 4]))
-    y = backend(VectorMPI(T[10, 20]))
+    x = HPCMatrix(T[1 2; 3 4], backend)
+    y = HPCVector(T[10, 20], backend)
     result = MultiGridBarrierMPI.map_rows((row_x, row_y) -> sum(row_x) + row_y[1], x, y)
-    @test result isa VectorMPI
+    @test result isa HPCVector
     @test length(result) == 2
     result_native = Vector(TestUtils.to_cpu(result))
     @test result_native[1] == T(13)  # (1+2) + 10
