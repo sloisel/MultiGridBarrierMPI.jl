@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -35,7 +35,7 @@ y_vals[:, 2] = ones(n) .* 0.1
 y_vals[:, 3] = ones(n) .* 0.1
 y_vals[:, 4] = ones(n) .* 0.3
 
-y_mpi = MatrixMPI(y_vals)
+y_mpi = HPCMatrix(y_vals)
 w_mpi = g.w
 
 # Build up to the failing point

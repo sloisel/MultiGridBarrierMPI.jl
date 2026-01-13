@@ -10,8 +10,8 @@ end
 using MultiGridBarrierMPI
 
 # Now load dependencies for tests
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -41,7 +41,7 @@ if rank == 0; println("[DEBUG] Creating geometry..."); flush(stdout); end
 g = fem1d_mpi(Float64; L=2)
 if rank == 0; println("[DEBUG] Geometry created"); flush(stdout); end
 @test g isa MultiGridBarrier.Geometry
-@test g.x isa MatrixMPI
+@test g.x isa HPCMatrix
 
 # Run parabolic solve with small time steps
 if rank == 0; println("[DEBUG] Starting parabolic_solve..."); flush(stdout); end
@@ -63,8 +63,8 @@ if rank == 0
     flush(stdout)
 end
 
-@test sol.u[1] isa MatrixMPI
-@test sol.u[end] isa MatrixMPI
+@test sol.u[1] isa HPCMatrix
+@test sol.u[end] isa HPCMatrix
 
 # Test 3: Convert ParabolicSOL to native
 if rank == 0

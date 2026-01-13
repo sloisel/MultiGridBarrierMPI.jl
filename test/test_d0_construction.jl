@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -37,7 +37,7 @@ n = size(D_dx_mpi, 1)
 println(io0(), "[DEBUG] Testing hcat of sparse matrices...")
 
 # Create zero matrix
-Z_mpi = SparseMatrixMPI{Float64}(spzeros(Float64, n, n))
+Z_mpi = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 Z_native = spzeros(Float64, n, n)
 
 # Test 1: hcat(Z, D_dx) - like foo = [Z; D_dx] in amg_helper
@@ -113,15 +113,15 @@ y22 = ones(n) * 0.3
 # MPI version
 H_mpi = nothing
 # j=1: dx'*diag(w*y11)*dx
-foo = spdiagm(n, n, 0 => w_mpi .* VectorMPI(y11))
+foo = spdiagm(n, n, 0 => w_mpi .* HPCVector(y11))
 H_mpi = D0_dx_mpi' * foo * D0_dx_mpi
 
 # j=2: id'*diag(w*y22)*id
-foo = spdiagm(n, n, 0 => w_mpi .* VectorMPI(y22))
+foo = spdiagm(n, n, 0 => w_mpi .* HPCVector(y22))
 H_mpi = H_mpi + D0_id_mpi' * foo * D0_id_mpi
 
 # Cross term: dx'*diag(w*y12)*id + id'*diag(w*y12)*dx
-foo = spdiagm(n, n, 0 => w_mpi .* VectorMPI(y12))
+foo = spdiagm(n, n, 0 => w_mpi .* HPCVector(y12))
 H_mpi = H_mpi + D0_dx_mpi' * foo * D0_id_mpi + D0_id_mpi' * foo * D0_dx_mpi
 
 # Native version

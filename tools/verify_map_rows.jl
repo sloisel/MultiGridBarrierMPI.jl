@@ -5,8 +5,8 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix
 import Statistics: mean, median
 
 MultiGridBarrierMPI.Init()
@@ -42,7 +42,7 @@ end
 mpi_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = LinearAlgebraMPI.map_rows(f, x_mpi, w_mpi)
+    result = HPCLinearAlgebra.map_rows(f, x_mpi, w_mpi)
     t = time_ns() - t
     push!(mpi_times, t)
 end
@@ -65,7 +65,7 @@ end
 mpi_rv_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = LinearAlgebraMPI.map_rows(f_rowvec, x_mpi, w_mpi)
+    result = HPCLinearAlgebra.map_rows(f_rowvec, x_mpi, w_mpi)
     t = time_ns() - t
     push!(mpi_rv_times, t)
 end

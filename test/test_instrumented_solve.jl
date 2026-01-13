@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -25,7 +25,7 @@ println(io0(), "[DEBUG] Instrumented solve test (nranks=$nranks)")
 original_solve = MultiGridBarrier.solve
 solve_count = Ref(0)
 
-function instrumented_solve(A::SparseMatrixMPI{T}, b::VectorMPI{T}) where {T}
+function instrumented_solve(A::HPCSparseMatrix{T}, b::HPCVector{T}) where {T}
     solve_count[] += 1
 
     println(io0(), "[SOLVE #$(solve_count[])] Matrix size: $(size(A))")
@@ -96,7 +96,7 @@ function instrumented_solve(A::SparseMatrixMPI{T}, b::VectorMPI{T}) where {T}
 end
 
 # Override solve
-MultiGridBarrier.solve(A::SparseMatrixMPI{T}, b::VectorMPI{T}) where {T} = instrumented_solve(A, b)
+MultiGridBarrier.solve(A::HPCSparseMatrix{T}, b::HPCVector{T}) where {T} = instrumented_solve(A, b)
 
 # Now run the actual solve
 println(io0(), "[DEBUG] Starting fem1d_mpi_solve...")

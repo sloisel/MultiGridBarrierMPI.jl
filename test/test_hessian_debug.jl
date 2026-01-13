@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -100,7 +100,7 @@ if haskey(g.subspaces, :dirichlet) && length(g.subspaces[:dirichlet]) > 0
     # Try factorizing the restricted system
     println(io0(), "[DEBUG] Attempting to factorize RtDtWDR...")
     n_coarse = size(RtDtWDR, 1)
-    b_test = VectorMPI(ones(n_coarse))
+    b_test = HPCVector(ones(n_coarse))
 
     try
         x_test = RtDtWDR \ b_test

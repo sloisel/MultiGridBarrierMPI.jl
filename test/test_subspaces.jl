@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -101,7 +101,7 @@ if haskey(g.subspaces, :dirichlet) && length(g.subspaces[:dirichlet]) > 0
 
         # Try to solve (collective)
         n_coarse = size(RtDwDR, 1)
-        b_coarse = VectorMPI(ones(n_coarse))
+        b_coarse = HPCVector(ones(n_coarse))
 
         println(io0(), "[DEBUG] Attempting to solve coarse system...")
 

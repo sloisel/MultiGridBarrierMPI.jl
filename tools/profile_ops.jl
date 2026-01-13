@@ -12,7 +12,7 @@ io0(args...) = rank == 0 && println(args...)
 io0("Loading packages...")
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 using SparseArrays
 using Printf
@@ -72,10 +72,10 @@ x_mpi = g_mpi.x
 f_hess = x -> [sum(x.^2), prod(x)]'
 
 for _ in 1:3
-    _ = LinearAlgebraMPI.map_rows(f_hess, x_mpi)
+    _ = HPCLinearAlgebra.map_rows(f_hess, x_mpi)
 end
 t_mpi = @elapsed for _ in 1:10
-    _ = LinearAlgebraMPI.map_rows(f_hess, x_mpi)
+    _ = HPCLinearAlgebra.map_rows(f_hess, x_mpi)
 end
 io0("  MPI:    $(round(t_mpi/10*1000, digits=2)) ms per op")
 
@@ -115,7 +115,7 @@ end
 # Linear solve timing with stiffness matrix
 io0("\nLinear solve with stiffness (3 times each):")
 K_mpi = Dx_mpi' * Dx_mpi + Dy_mpi' * Dy_mpi + 0.01 * Id_mpi
-b_mpi = VectorMPI(randn(n))
+b_mpi = HPCVector(randn(n))
 
 for _ in 1:2
     _ = K_mpi \ b_mpi

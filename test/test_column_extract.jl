@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -28,7 +28,7 @@ g = fem1d_mpi(Float64; L=2)
 D_op = [g.operators[:dx], g.operators[:id]]
 n = length(g.w)
 z_native = sin.(range(0, π, length=n))
-z_mpi = VectorMPI(z_native)
+z_mpi = HPCVector(z_native)
 
 # Apply D operators to get matrix
 Dz_mpi = hcat([D * z_mpi for D in D_op]...)
@@ -50,10 +50,10 @@ println(io0(), "[DEBUG] Testing column extraction y[:, 1]...")
 col1 = y_mpi[:, 1]
 println(io0(), "[DEBUG] col1 type: $(typeof(col1))")
 println(io0(), "[DEBUG] col1 size: $(size(col1))")
-if col1 isa VectorMPI
+if col1 isa HPCVector
     println(io0(), "[DEBUG] col1 partition: $(col1.partition)")
 else
-    println(io0(), "[DEBUG] col1 is NOT a VectorMPI!")
+    println(io0(), "[DEBUG] col1 is NOT a HPCVector!")
 end
 
 # Test element-wise multiplication
@@ -64,7 +64,7 @@ println(io0(), "[DEBUG] w partition: $(w.partition)")
 try
     w_col = w .* col1
     println(io0(), "[DEBUG] w .* col1 type: $(typeof(w_col))")
-    if w_col isa VectorMPI
+    if w_col isa HPCVector
         println(io0(), "[DEBUG] w .* col1 partition: $(w_col.partition)")
     end
     println(io0(), "[DEBUG] Element-wise multiplication succeeded!")
@@ -80,7 +80,7 @@ try
     foo = MultiGridBarrier.amgb_diag(D, w .* col1)
     println(io0(), "[DEBUG] amgb_diag result type: $(typeof(foo))")
     println(io0(), "[DEBUG] amgb_diag result size: $(size(foo))")
-    if foo isa SparseMatrixMPI
+    if foo isa HPCSparseMatrix
         println(io0(), "[DEBUG] amgb_diag row_partition: $(foo.row_partition)")
         println(io0(), "[DEBUG] amgb_diag col_partition: $(foo.col_partition)")
     end
@@ -99,7 +99,7 @@ try
     foo = MultiGridBarrier.amgb_diag(D, w .* col1)
     bar = D' * foo * D
     println(io0(), "[DEBUG] D'*foo*D size: $(size(bar))")
-    if bar isa SparseMatrixMPI
+    if bar isa HPCSparseMatrix
         println(io0(), "[DEBUG] D'*foo*D row_partition: $(bar.row_partition)")
         println(io0(), "[DEBUG] D'*foo*D col_partition: $(bar.col_partition)")
     end
@@ -132,7 +132,7 @@ if rank == 0
     println("[DEBUG] y difference (MPI vs native): $(norm(y_mpi_native - y_native))")
 
     col1_native = y_native[:, 1]
-    col1_mpi_native = col1 isa VectorMPI ? Vector(col1) : col1
+    col1_mpi_native = col1 isa HPCVector ? Vector(col1) : col1
     println("[DEBUG] col1 difference: $(norm(col1_mpi_native - col1_native))")
 end
 

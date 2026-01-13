@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -30,7 +30,7 @@ D_op = [g.operators[:dx], g.operators[:id]]  # dx and id operators
 # Create a test vector (should be size 16)
 n = length(g.w)
 z_native = sin.(range(0, π, length=n))
-z_mpi = VectorMPI(z_native)
+z_mpi = HPCVector(z_native)
 
 println(io0(), "[DEBUG] z size: $(length(z_mpi))")
 println(io0(), "[DEBUG] z partition: $(z_mpi.partition)")

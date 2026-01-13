@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -86,7 +86,7 @@ println(io0(), "[DEBUG] R_finest size: $(size(R_finest))")
 
 # Create a test vector with size ncols(R_finest)
 n_coarse = size(R_finest, 2)
-z_test = VectorMPI(ones(n_coarse))
+z_test = HPCVector(ones(n_coarse))
 println(io0(), "[DEBUG] z_test partition: $(z_test.partition)")
 
 # Compute R * z
@@ -105,7 +105,7 @@ println(io0(), "[DEBUG] \n--- Testing full Hessian assembly ---")
 # Let's simulate this
 w = g.w
 w_scaled = 2.0 .* Vector(w)  # Example scaling
-W_diag = spdiagm(length(w), length(w), 0 => VectorMPI(w_scaled))
+W_diag = spdiagm(length(w), length(w), 0 => HPCVector(w_scaled))
 
 println(io0(), "[DEBUG] W_diag size: $(size(W_diag))")
 println(io0(), "[DEBUG] W_diag row_partition: $(W_diag.row_partition)")
@@ -148,7 +148,7 @@ end
 
 # Try factorization
 println(io0(), "[DEBUG] Attempting to factorize...")
-b_test = VectorMPI(ones(size(Rt_Dt_W_D_R, 1)))
+b_test = HPCVector(ones(size(Rt_Dt_W_D_R, 1)))
 try
     x_test = Rt_Dt_W_D_R \ b_test
     println(io0(), "[DEBUG] Factorization succeeded!")

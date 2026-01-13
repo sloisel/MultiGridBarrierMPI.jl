@@ -10,9 +10,9 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, VectorMPI_local, MatrixMPI_local
-using LinearAlgebraMPI: _get_row_partition, _align_to_partition, _local_rows
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCVector_local, HPCMatrix_local
+using HPCLinearAlgebra: _get_row_partition, _align_to_partition, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 
@@ -31,8 +31,8 @@ nranks = MPI.Comm_size(comm)
 
 # Create geometry
 g_mpi = fem2d_mpi(Float64; L=L)
-x_mpi = g_mpi.x  # MatrixMPI (n x 2)
-w_mpi = g_mpi.w  # VectorMPI (n)
+x_mpi = g_mpi.x  # HPCMatrix (n x 2)
+w_mpi = g_mpi.w  # HPCVector (n)
 
 println("Grid size (global): ", sum(x_mpi.row_partition))
 println("Local rows: ", size(x_mpi.A, 1))
@@ -134,13 +134,13 @@ for iter in 1:N_ITER
         end
     end
 
-    # Build VectorMPI for scalar results
+    # Build HPCVector for scalar results
     if result_kind == 1
         local_v = Vector{Float64}(undef, length(results))
         for (i, r) in enumerate(results)
             local_v[i] = r
         end
-        result = VectorMPI_local(local_v)
+        result = HPCVector_local(local_v)
     end
     t7 = time_ns() - t7
     push!(times["result_build"], t7)

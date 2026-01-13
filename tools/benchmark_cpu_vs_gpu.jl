@@ -18,7 +18,7 @@ println("Loading packages...")
 using Metal
 using MultiGridBarrierMPI
 using MultiGridBarrier
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 using BenchmarkTools
 using Printf
 
@@ -41,14 +41,14 @@ for L in 1:7
 
     # Benchmark CPU
     println("  Benchmarking CPU...")
-    LinearAlgebraMPI.clear_plan_cache!()
+    HPCLinearAlgebra.clear_plan_cache!()
     b_cpu = @benchmark fem2d_mpi_solve(Float32; L=$L, verbose=false) samples=1 evals=1
     cpu_time = median(b_cpu.times) / 1e9
 
     # Benchmark GPU
     println("  Benchmarking GPU...")
-    LinearAlgebraMPI.clear_plan_cache!()
-    b_gpu = @benchmark fem2d_mpi_solve(Float32; L=$L, backend=LinearAlgebraMPI.mtl, verbose=false) samples=1 evals=1
+    HPCLinearAlgebra.clear_plan_cache!()
+    b_gpu = @benchmark fem2d_mpi_solve(Float32; L=$L, backend=HPCLinearAlgebra.mtl, verbose=false) samples=1 evals=1
     gpu_time = median(b_gpu.times) / 1e9
 
     push!(results, (L=L, n=n, cpu=cpu_time, gpu=gpu_time))

@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -45,7 +45,7 @@ D_native = [g_native.operators[:dx], g_native.operators[:id]]
 # Create a test solution
 n = length(g_mpi.w)
 z_native = sin.(range(0, π, length=n))
-z_mpi = VectorMPI(z_native)
+z_mpi = HPCVector(z_native)
 
 # Compute Dz
 Dz_mpi = hcat([D * z_mpi for D in D_mpi]...)

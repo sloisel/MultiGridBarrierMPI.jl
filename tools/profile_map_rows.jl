@@ -11,8 +11,8 @@ MPI.Init()
 using BenchmarkTools
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix
 using LinearAlgebra
 
 MultiGridBarrierMPI.Init()

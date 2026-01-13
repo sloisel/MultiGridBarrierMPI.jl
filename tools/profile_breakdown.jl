@@ -12,8 +12,8 @@ println("Loading packages...")
 using Metal
 using MultiGridBarrierMPI
 using MultiGridBarrier
-using LinearAlgebraMPI
-using LinearAlgebraMPI: mtl
+using HPCLinearAlgebra
+using HPCLinearAlgebra: mtl
 using LinearAlgebra
 using SparseArrays: nnz
 using BenchmarkTools
@@ -27,7 +27,7 @@ println("="^70)
 # Create geometries
 println("\nCreating geometries...")
 g_cpu = fem2d_mpi(Float32; L=L)
-g_gpu = fem2d_mpi(Float32; L=L, backend=LinearAlgebraMPI.mtl)
+g_gpu = fem2d_mpi(Float32; L=L, backend=HPCLinearAlgebra.mtl)
 
 n = size(g_cpu.x, 1)
 println("  Problem size n=$n")
@@ -39,9 +39,9 @@ D_gpu = g_gpu.operators[:dx]
 println("  Sparse matrix nnz=$(nnz(D_cpu))")
 
 # Create test vectors
-x_cpu = VectorMPI(randn(Float32, n))
+x_cpu = HPCVector(randn(Float32, n))
 x_gpu = mtl(x_cpu)
-y_cpu = VectorMPI(randn(Float32, n))
+y_cpu = HPCVector(randn(Float32, n))
 y_gpu = mtl(y_cpu)
 
 # Benchmark SpMV
@@ -76,8 +76,8 @@ println("  Ratio: $(round(cpu_ms/gpu_ms, digits=2))x")
 
 # Benchmark map_rows_gpu with simple function
 println("\n--- map_rows_gpu (x -> x^2) Benchmark ---")
-b_cpu_map = @benchmark LinearAlgebraMPI.map_rows_gpu(x -> x^2, $x_cpu) samples=20
-b_gpu_map = @benchmark LinearAlgebraMPI.map_rows_gpu(x -> x^2, $x_gpu) samples=20
+b_cpu_map = @benchmark HPCLinearAlgebra.map_rows_gpu(x -> x^2, $x_cpu) samples=20
+b_gpu_map = @benchmark HPCLinearAlgebra.map_rows_gpu(x -> x^2, $x_gpu) samples=20
 cpu_ms = median(b_cpu_map.times)/1e6
 gpu_ms = median(b_gpu_map.times)/1e6
 println("  CPU: $(round(cpu_ms, digits=3)) ms")
@@ -91,7 +91,7 @@ println("\n--- Full Solve Benchmark ---")
 println("  CPU solve (3 samples)...")
 b_cpu_solve = @benchmark fem2d_mpi_solve(Float32; L=$L, verbose=false) samples=3
 println("  GPU solve (3 samples)...")
-b_gpu_solve = @benchmark fem2d_mpi_solve(Float32; L=$L, backend=LinearAlgebraMPI.mtl, verbose=false) samples=3
+b_gpu_solve = @benchmark fem2d_mpi_solve(Float32; L=$L, backend=HPCLinearAlgebra.mtl, verbose=false) samples=3
 cpu_s = median(b_cpu_solve.times)/1e9
 gpu_s = median(b_gpu_solve.times)/1e9
 println("  CPU: $(round(cpu_s, digits=3)) s")

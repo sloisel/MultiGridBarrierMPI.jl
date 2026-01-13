@@ -5,7 +5,7 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 using SparseArrays
 import Statistics: mean, median
@@ -33,7 +33,7 @@ for L in [5, 6]
     # Create initial solution (like in amgb)
     dim = 2
     z_native = hcat(g_native.x, ones(n, dim+2))  # n x (2+dim+2) = n x 6
-    z_mpi = LinearAlgebraMPI.MatrixMPI(z_native; row_partition=g_mpi.x.row_partition)
+    z_mpi = HPCLinearAlgebra.HPCMatrix(z_native; row_partition=g_mpi.x.row_partition)
 
     # Get the operators we need
     x_native = g_native.x
@@ -56,7 +56,7 @@ for L in [5, 6]
     mpi_f0 = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = sum(LinearAlgebraMPI.map_rows(f0_like, z_mpi, w_mpi))
+        result = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
         t = time_ns() - t
         push!(mpi_f0, t)
     end
@@ -83,7 +83,7 @@ for L in [5, 6]
     mpi_f1 = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = LinearAlgebraMPI.map_rows(f1_like, z_mpi, w_mpi)
+        result = HPCLinearAlgebra.map_rows(f1_like, z_mpi, w_mpi)
         t = time_ns() - t
         push!(mpi_f1, t)
     end
@@ -92,8 +92,8 @@ for L in [5, 6]
     println("  MPI:    $(round(median(mpi_f1)/1000, digits=1)) μs")
     println("  Ratio:  $(round(median(mpi_f1) / median(native_f1), digits=2))x")
 
-    # 3. sum of VectorMPI
-    println("\n3. sum of VectorMPI:")
+    # 3. sum of HPCVector
+    println("\n3. sum of HPCVector:")
     v_native = w_native
     v_mpi = w_mpi
 
@@ -134,11 +134,11 @@ for L in [5, 6]
     mpi_seq = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        r1 = sum(LinearAlgebraMPI.map_rows(f0_like, z_mpi, w_mpi))
-        r2 = LinearAlgebraMPI.map_rows(f1_like, z_mpi, w_mpi)
-        r3 = sum(LinearAlgebraMPI.map_rows(f0_like, z_mpi, w_mpi))
-        r4 = LinearAlgebraMPI.map_rows(f1_like, z_mpi, w_mpi)
-        r5 = sum(LinearAlgebraMPI.map_rows(f0_like, z_mpi, w_mpi))
+        r1 = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
+        r2 = HPCLinearAlgebra.map_rows(f1_like, z_mpi, w_mpi)
+        r3 = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
+        r4 = HPCLinearAlgebra.map_rows(f1_like, z_mpi, w_mpi)
+        r5 = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
         t = time_ns() - t
         push!(mpi_seq, t)
     end

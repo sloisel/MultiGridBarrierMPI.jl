@@ -11,22 +11,22 @@ MPI.Init()
 println("Loading packages...")
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, _ensure_hash
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, _ensure_hash
 using LinearAlgebra
 using SparseArrays
 
 MultiGridBarrierMPI.Init()
 
 println("\n" * "="^70)
-println("Instrumenting *(::TransposedSparseMatrixMPI, ::SparseMatrixMPI)")
+println("Instrumenting *(::TransposedHPCSparseMatrix, ::HPCSparseMatrix)")
 println("="^70)
 
 g_mpi = fem2d_mpi(Float64; L=6)
 A = g_mpi.operators[:dx]
 
 # Pre-warm everything
-At_cached = SparseMatrixMPI(transpose(A))
+At_cached = HPCSparseMatrix(transpose(A))
 _ensure_hash(A)
 _ensure_hash(At_cached)
 _ = At_cached * A  # Warm up MatrixPlan cache
@@ -38,7 +38,7 @@ println("   Time: $(round(t*1000, digits=2)) ms")
 
 println("\n2. Now instrument the Transpose path manually:")
 
-# Manually do what *(::TransposedSparseMatrixMPI, ::SparseMatrixMPI) does
+# Manually do what *(::TransposedHPCSparseMatrix, ::HPCSparseMatrix) does
 At_wrapper = transpose(A)  # Creates lazy Transpose wrapper
 println("   Step a: Create Transpose wrapper")
 t_a = time()
@@ -53,9 +53,9 @@ t_b = time() - t_b
 println("   Time: $(round(t_b*1000000, digits=2)) μs")
 println("   A_parent === A: ", A_parent === A)
 
-println("   Step c: Get cached transpose via SparseMatrixMPI(transpose(A_parent))")
+println("   Step c: Get cached transpose via HPCSparseMatrix(transpose(A_parent))")
 t_c = time()
-A_transposed = SparseMatrixMPI(transpose(A_parent))
+A_transposed = HPCSparseMatrix(transpose(A_parent))
 t_c = time() - t_c
 println("   Time: $(round(t_c*1000000, digits=2)) μs")
 println("   A_transposed === At_cached: ", A_transposed === At_cached)

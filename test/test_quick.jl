@@ -15,8 +15,8 @@ end
 using MultiGridBarrierMPI
 
 # Now load dependencies for tests
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -28,15 +28,18 @@ rank = MPI.Comm_rank(comm)
 nranks = MPI.Comm_size(comm)
 
 if rank == 0
-    println("[DEBUG] Quick integration test starting")
-    println("[DEBUG] Configs to test: ", length(TestUtils.ALL_CONFIGS))
+    println("[DEBUG] Quick integration test starting (1D)")
+    println("[DEBUG] Configs to test: ", length(TestUtils.ALL_CONFIGS_1D))
+    println("[DEBUG] Note: CUDA excluded for 1D due to cuDSS tridiagonal bug")
     flush(stdout)
 end
 
 # Keep output tidy and aggregate at the end
-ts = @testset QuietTestSet "Quick integration tests" begin
+ts = @testset QuietTestSet "Quick integration tests (1D)" begin
 
-for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
+# Use ALL_CONFIGS_1D (no CUDA) because 1D FEM creates tridiagonal matrices
+# and cuDSS MGMN has a bug with narrow-bandwidth matrices
+for (T, backend, backend_name) in TestUtils.ALL_CONFIGS_1D
     TOL = TestUtils.tolerance(T)
 
     if rank == 0
@@ -52,9 +55,9 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
 
     g = fem1d_mpi(T; L=3, backend=backend)
     @test g isa MultiGridBarrier.Geometry
-    @test g.x isa MatrixMPI
-    @test g.w isa VectorMPI
-    @test g.operators[:id] isa SparseMatrixMPI
+    @test g.x isa HPCMatrix
+    @test g.w isa HPCVector
+    @test g.operators[:id] isa HPCSparseMatrix
 
     if rank == 0
         println("[DEBUG] Geometry created successfully")
@@ -168,7 +171,7 @@ global_counts = similar(local_counts)
 MPI.Allreduce!(local_counts, global_counts, +, comm)
 
 if rank == 0
-    println("Test Summary: Quick integration tests (aggregated across $(nranks) ranks)")
+    println("Test Summary: Quick integration tests 1D (aggregated across $(nranks) ranks)")
     println("  Pass: $(global_counts[1])  Fail: $(global_counts[2])  Error: $(global_counts[3])  Broken: $(global_counts[4])  Skip: $(global_counts[5])")
 end
 

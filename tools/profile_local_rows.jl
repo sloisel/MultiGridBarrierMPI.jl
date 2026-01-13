@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# Profile _local_rows behavior for VectorMPI
+# Profile _local_rows behavior for HPCVector
 #
 # Run with: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=10 mpiexec -n 1 julia --project=. tools/profile_local_rows.jl
 #
@@ -10,8 +10,8 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, _local_rows
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 
@@ -21,7 +21,7 @@ const L = 6
 const N_ITER = 100
 
 println("="^70)
-println("Profile _local_rows for VectorMPI")
+println("Profile _local_rows for HPCVector")
 println("="^70)
 
 g_mpi = fem2d_mpi(Float64; L=L)
@@ -38,12 +38,12 @@ println("n = $n")
 f = (row_x, w) -> w * sum(row_x)
 
 println("\n" * "-"^70)
-println("What _local_rows returns for VectorMPI")
+println("What _local_rows returns for HPCVector")
 println("-"^70)
 
 row_iter_w = _local_rows(w_mpi)
 first_w = first(row_iter_w)
-println("Type of element from _local_rows(VectorMPI): ", typeof(first_w))
+println("Type of element from _local_rows(HPCVector): ", typeof(first_w))
 println("Value: ", first_w)
 println("Is it a scalar? ", first_w isa Number)
 
@@ -51,7 +51,7 @@ println("\n" * "-"^70)
 println("Comparing different iteration patterns")
 println("-"^70)
 
-# 1. Current MPI style: view(v, i:i) for VectorMPI
+# 1. Current MPI style: view(v, i:i) for HPCVector
 t1_times = Float64[]
 for _ in 1:N_ITER
     row_iter_x = eachrow(x_local)

@@ -10,8 +10,8 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, _local_rows
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 
@@ -125,8 +125,8 @@ println("-"^70)
 row_iter_x = _local_rows(x_mpi)
 row_iter_w = _local_rows(w_mpi)
 
-println("_local_rows(MatrixMPI) type: ", typeof(row_iter_x))
-println("_local_rows(VectorMPI) type: ", typeof(row_iter_w))
+println("_local_rows(HPCMatrix) type: ", typeof(row_iter_x))
+println("_local_rows(HPCVector) type: ", typeof(row_iter_w))
 println("eachrow(Matrix) type: ", typeof(eachrow(x_local)))
 
 # Test if the issue is in how _local_rows generates views

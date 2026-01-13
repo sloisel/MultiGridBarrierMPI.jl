@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -29,7 +29,7 @@ n = length(g_mpi.w)
 
 # Get operators
 D_dx_mpi = g_mpi.operators[:dx]
-Z_mpi = SparseMatrixMPI{Float64}(spzeros(Float64, n, n))
+Z_mpi = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 
 # Create wide operator: D0_dx = [D_dx | Z] (8 x 16)
 D0_dx_mpi = hcat(D_dx_mpi, Z_mpi)
@@ -67,7 +67,7 @@ w_mpi = g_mpi.w
 w_native = g_native.w
 
 y11 = ones(n) * 0.5
-foo_mpi = spdiagm(n, n, 0 => w_mpi .* VectorMPI(y11))
+foo_mpi = spdiagm(n, n, 0 => w_mpi .* HPCVector(y11))
 foo_native = spdiagm(n, n, 0 => w_native .* y11)
 
 println(io0(), "[DEBUG] foo (diagonal) partitions:")

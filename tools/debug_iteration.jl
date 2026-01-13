@@ -3,8 +3,8 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, _local_rows, VectorMPI_local
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows, HPCVector_local
 
 MultiGridBarrierMPI.Init()
 
@@ -72,11 +72,11 @@ results5 = collect(map(f, row_iters3...))
 t5 = (time_ns() - t5) / 1000
 println("map(f, _local_rows...): $(round(t5, digits=1)) μs, length=$(length(results5))")
 
-# Now time VectorMPI_local
-println("\nTiming VectorMPI_local:")
+# Now time HPCVector_local
+println("\nTiming HPCVector_local:")
 t6 = time_ns()
-v = VectorMPI_local(results3)
+v = HPCVector_local(results3)
 t6 = (time_ns() - t6) / 1000
-println("VectorMPI_local: $(round(t6, digits=1)) μs")
+println("HPCVector_local: $(round(t6, digits=1)) μs")
 
 println("\nDone.")

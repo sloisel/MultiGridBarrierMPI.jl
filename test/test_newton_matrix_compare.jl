@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -30,7 +30,7 @@ mpi_solve_count = Ref(0)
 native_solve_count = Ref(0)
 
 # Override solve for MPI version
-function instrumented_mpi_solve(A::SparseMatrixMPI{T}, b::VectorMPI{T}) where {T}
+function instrumented_mpi_solve(A::HPCSparseMatrix{T}, b::HPCVector{T}) where {T}
     mpi_solve_count[] += 1
     A_native = SparseMatrixCSC(A)
     b_native = Vector(b)
@@ -48,7 +48,7 @@ function instrumented_native_solve(A::SparseMatrixCSC{T,Int}, b::Vector{T}) wher
 end
 
 # Override solve
-MultiGridBarrier.solve(A::SparseMatrixMPI{T}, b::VectorMPI{T}) where {T} = instrumented_mpi_solve(A, b)
+MultiGridBarrier.solve(A::HPCSparseMatrix{T}, b::HPCVector{T}) where {T} = instrumented_mpi_solve(A, b)
 
 println(io0(), "[DEBUG] Running MPI solve...")
 

@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -56,14 +56,14 @@ end
 # Try to factorize D'D (should work for a well-posed problem)
 w_native = Vector(g.w)
 w_diag = spdiagm(0 => w_native)
-WD = SparseMatrixMPI{Float64}(w_diag) * D
+WD = HPCSparseMatrix{Float64}(w_diag) * D
 
 if rank == 0
     println("[DEBUG] W*D size: $(size(WD))")
     flush(stdout)
 end
 
-DtWD = D' * SparseMatrixMPI{Float64}(w_diag) * D
+DtWD = D' * HPCSparseMatrix{Float64}(w_diag) * D
 DtWD_native = SparseMatrixCSC(DtWD)
 
 if rank == 0
@@ -108,7 +108,7 @@ if haskey(g.subspaces, :dirichlet) && length(g.subspaces[:dirichlet]) > 0
 
     # Try to solve with this matrix
     n_small = size(RtDtWDR, 1)
-    b_mpi = VectorMPI(ones(n_small))
+    b_mpi = HPCVector(ones(n_small))
 
     if rank == 0
         println("[DEBUG] Attempting to solve R'D'WDR \\ b...")

@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -26,7 +26,7 @@ end
 
 # Override solve to add diagnostics
 original_solve = MultiGridBarrier.solve
-function debug_solve(A::SparseMatrixMPI{T}, b::VectorMPI{T}) where T
+function debug_solve(A::HPCSparseMatrix{T}, b::HPCVector{T}) where T
     if rank == 0
         println("[DEBUG-SOLVE] Matrix size: $(size(A))")
         println("[DEBUG-SOLVE] Vector length: $(length(b))")

@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -33,7 +33,7 @@ println(io0(), "[DEBUG] R col_partition: $(R.col_partition)")
 
 # Create a vector of size 7 (ncols of R)
 z_native = collect(Float64, 1:7)
-z_mpi = VectorMPI(z_native)
+z_mpi = HPCVector(z_native)
 
 println(io0(), "[DEBUG] z size: $(length(z_mpi))")
 println(io0(), "[DEBUG] z partition: $(z_mpi.partition)")
@@ -56,7 +56,7 @@ println(io0(), "[DEBUG] R*z match: $(Rz_native ≈ Rz_expected)")
 
 # Test R' * v where v is size 16
 v_native = ones(16)
-v_mpi = VectorMPI(v_native)
+v_mpi = HPCVector(v_native)
 
 println(io0(), "[DEBUG] Computing R' * v...")
 Rtv_mpi = R' * v_mpi

@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -29,8 +29,8 @@ n = 10
 d_native = collect(Float64, 1:n)
 D_ref = spdiagm(0 => d_native)
 
-d_mpi = VectorMPI(d_native)
-template = SparseMatrixMPI{Float64}(spzeros(Float64, n, n))
+d_mpi = HPCVector(d_native)
+template = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 D_mpi = MultiGridBarrier.amgb_diag(template, d_mpi)
 
 # Convert back to native
@@ -47,7 +47,7 @@ end
 
 # Test 2: Solve A x = b where A is diagonal
 b_native = ones(n)
-b_mpi = VectorMPI(b_native)
+b_mpi = HPCVector(b_native)
 x_mpi = D_mpi \ b_mpi
 x_native = Vector(x_mpi)
 x_ref = D_ref \ b_native

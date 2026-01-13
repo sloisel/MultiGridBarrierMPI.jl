@@ -10,8 +10,8 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, _get_row_partition, _align_to_partition, _local_rows
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, _get_row_partition, _align_to_partition, _local_rows
 using LinearAlgebra
 
 MultiGridBarrierMPI.Init()
@@ -23,8 +23,8 @@ println("="^70)
 
 # Create geometry
 g_mpi = fem2d_mpi(Float64; L=L)
-x_mpi = g_mpi.x  # MatrixMPI
-w_mpi = g_mpi.w  # VectorMPI
+x_mpi = g_mpi.x  # HPCMatrix
+w_mpi = g_mpi.w  # HPCVector
 
 println("Grid size (global): ", sum(x_mpi.row_partition))
 println("Local rows: ", size(x_mpi.A, 1))
@@ -128,7 +128,7 @@ println("\n--- Actual barrier function pattern ---")
 
 # The barrier functions do something like:
 # map_rows((Dz_row, w) -> ..., Dz, w)
-# where Dz is a MatrixMPI and w is a VectorMPI
+# where Dz is a HPCMatrix and w is a HPCVector
 
 Dz = x_mpi  # Use x_mpi as a stand-in for Dz
 w = w_mpi

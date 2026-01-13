@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0, materialize_transpose
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0, materialize_transpose
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -29,7 +29,7 @@ n = length(g_mpi.w)
 
 # Get operators
 D_dx_mpi = g_mpi.operators[:dx]
-Z_mpi = SparseMatrixMPI{Float64}(spzeros(Float64, n, n))
+Z_mpi = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 D_dx_native = g_native.operators[:dx]
 Z_native = spzeros(Float64, n, n)
 
@@ -91,7 +91,7 @@ println(io0(), "[DEBUG] Test 3: D0_dx' * foo (diagonal)")
 w_mpi = g_mpi.w
 w_native = g_native.w
 y11 = ones(n) * 0.5
-foo_mpi = spdiagm(n, n, 0 => w_mpi .* VectorMPI(y11))
+foo_mpi = spdiagm(n, n, 0 => w_mpi .* HPCVector(y11))
 foo_native = spdiagm(n, n, 0 => w_native .* y11)
 
 println(io0(), "[DEBUG] foo size: $(size(foo_mpi))")

@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using LinearAlgebraMPI
-using LinearAlgebraMPI: VectorMPI, MatrixMPI, SparseMatrixMPI, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 
@@ -23,13 +23,13 @@ if rank == 0
     flush(stdout)
 end
 
-# Test: Two SparseMatrixMPI multiplication
+# Test: Two HPCSparseMatrix multiplication
 A_native = sparse([1.0 0.0; 2.0 3.0; 0.0 4.0])  # 3x2
 B_native = sparse([1.0 2.0 3.0; 4.0 5.0 6.0])   # 2x3
 C_expected = A_native * B_native                  # 3x3
 
-A_mpi = SparseMatrixMPI{Float64}(A_native)
-B_mpi = SparseMatrixMPI{Float64}(B_native)
+A_mpi = HPCSparseMatrix{Float64}(A_native)
+B_mpi = HPCSparseMatrix{Float64}(B_native)
 
 if rank == 0
     println("[DEBUG] A size: $(size(A_mpi)), B size: $(size(B_mpi))")
@@ -71,10 +71,10 @@ end
 n = size(AtA_expected, 1)
 reg = 0.01 * sparse(I, n, n)
 AtA_reg = AtA_expected + reg
-AtA_reg_mpi = SparseMatrixMPI{Float64}(AtA_reg)
+AtA_reg_mpi = HPCSparseMatrix{Float64}(AtA_reg)
 
 b = ones(n)
-b_mpi = VectorMPI(b)
+b_mpi = HPCVector(b)
 
 if rank == 0
     println("[DEBUG] Attempting to solve (A'A + reg) \\ b...")

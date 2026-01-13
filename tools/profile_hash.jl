@@ -11,7 +11,7 @@ io0(args...) = rank == 0 && println(args...)
 
 io0("Loading packages...")
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 using SparseArrays
 
@@ -40,8 +40,8 @@ io0("  Time: $(round(t2*1000, digits=2)) ms")
 
 # Now create a NEW sparse matrix (simulates what happens in barrier iteration)
 io0("\nCreate new diagonal matrix (like barrier does):")
-d = VectorMPI(randn(n))
-diag_mat = spdiagm(n, n, 0 => d)  # This creates a NEW SparseMatrixMPI
+d = HPCVector(randn(n))
+diag_mat = spdiagm(n, n, 0 => d)  # This creates a NEW HPCSparseMatrix
 io0("  Type: $(typeof(diag_mat))")
 
 io0("First Dx' * diag_mat (new matrix, needs hash):")
@@ -54,7 +54,7 @@ io0("  Time: $(round(t4*1000, digits=2)) ms")
 
 # Create another new diagonal and multiply
 io0("\nCreate ANOTHER new diagonal matrix:")
-d2 = VectorMPI(randn(n))
+d2 = HPCVector(randn(n))
 diag_mat2 = spdiagm(n, n, 0 => d2)
 io0("First Dx' * diag_mat2 (new matrix):")
 t5 = @elapsed R5 = Dx' * diag_mat2

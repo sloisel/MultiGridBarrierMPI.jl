@@ -11,7 +11,7 @@ MPI.Init()
 using Profile
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using LinearAlgebraMPI
+using HPCLinearAlgebra
 
 MultiGridBarrierMPI.Init()
 
