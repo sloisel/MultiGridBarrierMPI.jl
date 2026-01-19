@@ -10,20 +10,20 @@ MPI.Init()
 
 println("Loading packages...")
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, _ensure_hash
+using HPCMultiGridBarrier
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, _ensure_hash
 using LinearAlgebra
 using SparseArrays
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 println("\n" * "="^70)
 println("Instrumenting *(::TransposedHPCSparseMatrix, ::HPCSparseMatrix)")
 println("="^70)
 
-g_mpi = fem2d_mpi(Float64; L=6)
-A = g_mpi.operators[:dx]
+g_hpc = fem2d_hpc(Float64; L=6)
+A = g_hpc.operators[:dx]
 
 # Pre-warm everything
 At_cached = HPCSparseMatrix(transpose(A))

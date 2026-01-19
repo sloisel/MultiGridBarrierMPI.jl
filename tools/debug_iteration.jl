@@ -2,13 +2,13 @@
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows, HPCVector_local
+using HPCMultiGridBarrier
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, _local_rows, HPCVector_local
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
-g = fem2d_mpi(Float64; L=6)
+g = fem2d_hpc(Float64; L=6)
 x = g.x
 w = g.w
 

@@ -4,12 +4,12 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix
+using HPCMultiGridBarrier
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix
 import Statistics: mean, median
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 const L = 6
 const N_ITER = 100
@@ -18,12 +18,12 @@ println("="^70)
 println("Verify map_rows optimization at L=$L")
 println("="^70)
 
-g_mpi = fem2d_mpi(Float64; L=L)
-x_mpi = g_mpi.x
-w_mpi = g_mpi.w
+g_hpc = fem2d_hpc(Float64; L=L)
+x_hpc = g_hpc.x
+w_hpc = g_hpc.w
 
-x_native = x_mpi.A
-w_native = w_mpi.v
+x_native = x_hpc.A
+w_native = w_hpc.v
 
 println("Local rows: ", size(x_native, 1))
 
@@ -42,7 +42,7 @@ end
 mpi_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = HPCLinearAlgebra.map_rows(f, x_mpi, w_mpi)
+    result = HPCSparseArrays.map_rows(f, x_hpc, w_hpc)
     t = time_ns() - t
     push!(mpi_times, t)
 end
@@ -65,7 +65,7 @@ end
 mpi_rv_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = HPCLinearAlgebra.map_rows(f_rowvec, x_mpi, w_mpi)
+    result = HPCSparseArrays.map_rows(f_rowvec, x_hpc, w_hpc)
     t = time_ns() - t
     push!(mpi_rv_times, t)
 end

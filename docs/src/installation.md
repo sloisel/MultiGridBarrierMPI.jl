@@ -4,13 +4,13 @@
 
 ### MPI
 
-MultiGridBarrierMPI.jl requires an MPI implementation. When you install the package, Julia automatically provides `MPI.jl` with `MPI_jll` (bundled MPI implementation).
+HPCMultiGridBarrier.jl requires an MPI implementation. When you install the package, Julia automatically provides `MPI.jl` with `MPI_jll` (bundled MPI implementation).
 
 For HPC environments, you may want to configure MPI.jl to use your system's MPI installation. See the [MPI.jl documentation](https://juliaparallel.org/MPI.jl/stable/configuration/) for details.
 
 ### MUMPS
 
-The package uses MUMPS for sparse direct solves through HPCLinearAlgebra.jl. MUMPS is typically available through your system's package manager or HPC module system.
+The package uses MUMPS for sparse direct solves through HPCSparseArrays.jl. MUMPS is typically available through your system's package manager or HPC module system.
 
 ## Package Installation
 
@@ -18,7 +18,7 @@ The package uses MUMPS for sparse direct solves through HPCLinearAlgebra.jl. MUM
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/sloisel/MultiGridBarrierMPI.jl")
+Pkg.add(url="https://github.com/sloisel/HPCMultiGridBarrier.jl")
 ```
 
 ### Development Installation
@@ -26,8 +26,8 @@ Pkg.add(url="https://github.com/sloisel/MultiGridBarrierMPI.jl")
 To install the development version:
 
 ```bash
-git clone https://github.com/sloisel/MultiGridBarrierMPI.jl
-cd MultiGridBarrierMPI.jl
+git clone https://github.com/sloisel/HPCMultiGridBarrier.jl
+cd HPCMultiGridBarrier.jl
 julia --project -e 'using Pkg; Pkg.instantiate()'
 ```
 
@@ -36,14 +36,14 @@ julia --project -e 'using Pkg; Pkg.instantiate()'
 Test your installation with MPI:
 
 ```bash
-cd MultiGridBarrierMPI.jl
+cd HPCMultiGridBarrier.jl
 mpiexec -n 2 julia --project test/runtests.jl
 ```
 
 All tests should pass. Expected output:
 ```
 Test Summary:          | Pass  Total
-MultiGridBarrierMPI.jl |    2      2
+HPCMultiGridBarrier.jl |    2      2
 ```
 
 ## Initialization Pattern
@@ -56,11 +56,11 @@ MultiGridBarrierMPI.jl |    2      2
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
+using HPCMultiGridBarrier
 # Now you can use the package
 
 # WRONG - MPI must be initialized before using MPI types
-using MultiGridBarrierMPI
+using HPCMultiGridBarrier
 # Missing MPI.Init() - will fail when calling functions
 ```
 
@@ -74,11 +74,11 @@ For distributed execution, create a script file (e.g., `my_program.jl`):
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 
 # Your parallel code here
-sol = fem2d_mpi_solve(Float64; L=3, p=1.0)
+sol = fem2d_hpc_solve(Float64; L=3, p=1.0)
 println(io0(), "Solution computed!")
 ```
 
@@ -89,7 +89,7 @@ mpiexec -n 4 julia --project my_program.jl
 ```
 
 !!! tip "Output from Rank 0 Only"
-    Use `io0()` from HPCLinearAlgebra for output to avoid duplicate messages:
+    Use `io0()` from HPCSparseArrays for output to avoid duplicate messages:
     ```julia
     println(io0(), "This prints once from rank 0")
     ```
@@ -106,7 +106,7 @@ using Pkg; Pkg.build("MPI")
 
 ### MUMPS Issues
 
-If MUMPS fails to load, ensure it's properly installed on your system and that HPCLinearAlgebra.jl can find it.
+If MUMPS fails to load, ensure it's properly installed on your system and that HPCSparseArrays.jl can find it.
 
 ### Test Failures
 

@@ -9,11 +9,11 @@ flush(stdout)
 println("Loading packages for precompilation...")
 flush(stdout)
 try
-    @eval using MultiGridBarrierMPI
-    println("  - MultiGridBarrierMPI loaded")
+    @eval using HPCMultiGridBarrier
+    println("  - HPCMultiGridBarrier loaded")
     flush(stdout)
-    @eval using HPCLinearAlgebra
-    println("  - HPCLinearAlgebra loaded")
+    @eval using HPCSparseArrays
+    println("  - HPCSparseArrays loaded")
     flush(stdout)
     @eval using MultiGridBarrier
     println("  - MultiGridBarrier loaded")
@@ -53,7 +53,7 @@ end
 println("=== Starting test suite ===")
 flush(stdout)
 
-@testset "MultiGridBarrierMPI.jl" begin
+@testset "HPCMultiGridBarrier.jl" begin
     println(">>> Test 1/4: Helper functions")
     flush(stdout)
     @testset "Helper functions" begin

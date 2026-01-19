@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,7 +22,7 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Testing subspace structures")
 
 # Create geometry
-g = fem1d_mpi(Float64; L=3)
+g = fem1d_hpc(Float64; L=3)
 
 println(io0(), "[DEBUG] Geometry created")
 println(io0(), "[DEBUG] x size: $(size(g.x))")

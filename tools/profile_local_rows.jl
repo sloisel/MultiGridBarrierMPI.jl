@@ -9,13 +9,13 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows
+using HPCMultiGridBarrier
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 const L = 6
 const N_ITER = 100
@@ -24,12 +24,12 @@ println("="^70)
 println("Profile _local_rows for HPCVector")
 println("="^70)
 
-g_mpi = fem2d_mpi(Float64; L=L)
-x_mpi = g_mpi.x
-w_mpi = g_mpi.w
+g_hpc = fem2d_hpc(Float64; L=L)
+x_hpc = g_hpc.x
+w_hpc = g_hpc.w
 
-x_local = x_mpi.A
-w_local = w_mpi.v
+x_local = x_hpc.A
+w_local = w_hpc.v
 n = length(w_local)
 
 println("n = $n")
@@ -41,7 +41,7 @@ println("\n" * "-"^70)
 println("What _local_rows returns for HPCVector")
 println("-"^70)
 
-row_iter_w = _local_rows(w_mpi)
+row_iter_w = _local_rows(w_hpc)
 first_w = first(row_iter_w)
 println("Type of element from _local_rows(HPCVector): ", typeof(first_w))
 println("Value: ", first_w)

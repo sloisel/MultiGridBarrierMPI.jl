@@ -4,12 +4,12 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using LinearAlgebra
 import Statistics: mean, median
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 println("="^70)
 println("Scaling analysis: L=5 vs L=6")
@@ -22,18 +22,18 @@ for L in [5, 6]
     println("L = $L")
     println("="^70)
 
-    g_mpi = fem2d_mpi(Float64; L=L)
-    x_mpi = g_mpi.x
-    w_mpi = g_mpi.w
-    x_native = x_mpi.A
-    w_native = w_mpi.v
+    g_hpc = fem2d_hpc(Float64; L=L)
+    x_hpc = g_hpc.x
+    w_hpc = g_hpc.w
+    x_native = x_hpc.A
+    w_native = w_hpc.v
 
     n = size(x_native, 1)
     println("Grid points: $n")
 
     # Create test vectors
     u_native = ones(n)
-    u_mpi = HPCLinearAlgebra.HPCVector(u_native; partition=w_mpi.partition)
+    u_mpi = HPCSparseArrays.HPCVector(u_native; partition=w_hpc.partition)
 
     # 1. map_rows with scalar function
     println("\n1. map_rows (scalar):")
@@ -50,7 +50,7 @@ for L in [5, 6]
     mpi_times = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = HPCLinearAlgebra.map_rows(f_scalar, x_mpi, w_mpi)
+        result = HPCSparseArrays.map_rows(f_scalar, x_hpc, w_hpc)
         t = time_ns() - t
         push!(mpi_times, t)
     end
@@ -62,7 +62,7 @@ for L in [5, 6]
     # 2. Sparse matrix-vector product
     println("\n2. Sparse matvec (A*u):")
     # Get the sparse matrix from operators
-    A_mpi = g_mpi.operators[:id]
+    A_mpi = g_hpc.operators[:id]
     g_native = fem2d(Float64; L=L)
     A_native = g_native.operators[:id]
 
@@ -111,7 +111,7 @@ for L in [5, 6]
     # 4. Vector operations
     println("\n4. Vector add (u + v):")
     v_native = 2 .* u_native
-    v_mpi = HPCLinearAlgebra.HPCVector(v_native; partition=w_mpi.partition)
+    v_mpi = HPCSparseArrays.HPCVector(v_native; partition=w_hpc.partition)
 
     native_add = Float64[]
     for _ in 1:N_ITER
@@ -151,7 +151,7 @@ for L in [5, 6]
     mpi_rv = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = HPCLinearAlgebra.map_rows(f_rowvec, x_mpi, w_mpi)
+        result = HPCSparseArrays.map_rows(f_rowvec, x_hpc, w_hpc)
         t = time_ns() - t
         push!(mpi_rv, t)
     end

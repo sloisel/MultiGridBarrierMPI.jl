@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -119,7 +119,7 @@ if rank == 0
     flush(stdout)
 end
 
-g = fem1d_mpi(Float64; L=3)
+g = fem1d_hpc(Float64; L=3)
 
 if rank == 0
     println("[DEBUG] Geometry created, x size: $(size(g.x))")
@@ -133,7 +133,7 @@ if rank == 0
 end
 
 try
-    sol = fem1d_mpi_solve(Float64; L=3, p=1.0, verbose=true)
+    sol = fem1d_hpc_solve(Float64; L=3, p=1.0, verbose=true)
     if rank == 0
         println("[DEBUG] Solve succeeded!")
     end

@@ -3,17 +3,17 @@
 # Profile breakdown: measure time spent in different operations (CPU vs GPU)
 #
 # Run with:
-#   mpiexec -n 1 julia --project=MultiGridBarrierMPI.jl MultiGridBarrierMPI.jl/tools/profile_breakdown.jl
+#   mpiexec -n 1 julia --project=HPCMultiGridBarrier.jl HPCMultiGridBarrier.jl/tools/profile_breakdown.jl
 
 using MPI
 MPI.Init()
 
 println("Loading packages...")
 using Metal
-using MultiGridBarrierMPI
+using HPCMultiGridBarrier
 using MultiGridBarrier
-using HPCLinearAlgebra
-using HPCLinearAlgebra: mtl
+using HPCSparseArrays
+using HPCSparseArrays: mtl
 using LinearAlgebra
 using SparseArrays: nnz
 using BenchmarkTools
@@ -26,8 +26,8 @@ println("="^70)
 
 # Create geometries
 println("\nCreating geometries...")
-g_cpu = fem2d_mpi(Float32; L=L)
-g_gpu = fem2d_mpi(Float32; L=L, backend=HPCLinearAlgebra.mtl)
+g_cpu = fem2d_hpc(Float32; L=L)
+g_gpu = fem2d_hpc(Float32; L=L, backend=HPCSparseArrays.mtl)
 
 n = size(g_cpu.x, 1)
 println("  Problem size n=$n")
@@ -76,8 +76,8 @@ println("  Ratio: $(round(cpu_ms/gpu_ms, digits=2))x")
 
 # Benchmark map_rows_gpu with simple function
 println("\n--- map_rows_gpu (x -> x^2) Benchmark ---")
-b_cpu_map = @benchmark HPCLinearAlgebra.map_rows_gpu(x -> x^2, $x_cpu) samples=20
-b_gpu_map = @benchmark HPCLinearAlgebra.map_rows_gpu(x -> x^2, $x_gpu) samples=20
+b_cpu_map = @benchmark HPCSparseArrays.map_rows_gpu(x -> x^2, $x_cpu) samples=20
+b_gpu_map = @benchmark HPCSparseArrays.map_rows_gpu(x -> x^2, $x_gpu) samples=20
 cpu_ms = median(b_cpu_map.times)/1e6
 gpu_ms = median(b_gpu_map.times)/1e6
 println("  CPU: $(round(cpu_ms, digits=3)) ms")
@@ -89,9 +89,9 @@ println("  Ratio: $(round(cpu_ms/gpu_ms, digits=2))x")
 # Full solve comparison
 println("\n--- Full Solve Benchmark ---")
 println("  CPU solve (3 samples)...")
-b_cpu_solve = @benchmark fem2d_mpi_solve(Float32; L=$L, verbose=false) samples=3
+b_cpu_solve = @benchmark fem2d_hpc_solve(Float32; L=$L, verbose=false) samples=3
 println("  GPU solve (3 samples)...")
-b_gpu_solve = @benchmark fem2d_mpi_solve(Float32; L=$L, backend=HPCLinearAlgebra.mtl, verbose=false) samples=3
+b_gpu_solve = @benchmark fem2d_hpc_solve(Float32; L=$L, backend=HPCSparseArrays.mtl, verbose=false) samples=3
 cpu_s = median(b_cpu_solve.times)/1e9
 gpu_s = median(b_gpu_solve.times)/1e9
 println("  CPU: $(round(cpu_s, digits=3)) s")

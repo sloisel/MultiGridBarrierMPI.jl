@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 
@@ -71,7 +71,7 @@ end
 n = size(AtA_expected, 1)
 reg = 0.01 * sparse(I, n, n)
 AtA_reg = AtA_expected + reg
-AtA_reg_mpi = HPCSparseMatrix{Float64}(AtA_reg)
+AtA_reg_hpc = HPCSparseMatrix{Float64}(AtA_reg)
 
 b = ones(n)
 b_mpi = HPCVector(b)
@@ -82,8 +82,8 @@ if rank == 0
 end
 
 try
-    x_mpi = AtA_reg_mpi \ b_mpi
-    x_native = Vector(x_mpi)
+    x_hpc = AtA_reg_hpc \ b_mpi
+    x_native = Vector(x_hpc)
     x_expected = AtA_reg \ b
 
     if rank == 0

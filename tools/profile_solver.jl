@@ -10,22 +10,22 @@ MPI.Init()
 
 using Profile
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 const L = 5  # Use L=5 for faster profiling
 
 println("="^70)
-println("Profiling fem2d_solve vs fem2d_mpi_solve at L=$L")
+println("Profiling fem2d_solve vs fem2d_hpc_solve at L=$L")
 println("="^70)
 
 # Warmup
 println("\nWarming up native...")
 fem2d_solve(Float64; L=L, verbose=false)
 println("Warming up MPI...")
-fem2d_mpi_solve(Float64; L=L, verbose=false)
+fem2d_hpc_solve(Float64; L=L, verbose=false)
 
 # Profile native
 println("\n" * "-"^70)
@@ -38,10 +38,10 @@ Profile.print(maxdepth=30, mincount=50, sortedby=:count)
 
 # Profile MPI
 println("\n" * "-"^70)
-println("Profiling MPI fem2d_mpi_solve...")
+println("Profiling MPI fem2d_hpc_solve...")
 println("-"^70)
 Profile.clear()
-@profile fem2d_mpi_solve(Float64; L=L, verbose=false)
+@profile fem2d_hpc_solve(Float64; L=L, verbose=false)
 println("\nTop functions (MPI):")
 Profile.print(maxdepth=30, mincount=50, sortedby=:count)
 

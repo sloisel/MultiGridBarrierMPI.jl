@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -48,8 +48,8 @@ end
 # Test 2: Solve A x = b where A is diagonal
 b_native = ones(n)
 b_mpi = HPCVector(b_native)
-x_mpi = D_mpi \ b_mpi
-x_native = Vector(x_mpi)
+x_hpc = D_mpi \ b_mpi
+x_native = Vector(x_hpc)
 x_ref = D_ref \ b_native
 
 if rank == 0
@@ -78,8 +78,8 @@ end
 
 # Test 4: Check adjoint multiplication
 Dt_mpi = D_mpi'
-z_mpi = Dt_mpi * b_mpi
-z_native = Vector(z_mpi)
+z_hpc = Dt_mpi * b_mpi
+z_native = Vector(z_hpc)
 z_ref = D_ref' * b_native
 
 if rank == 0

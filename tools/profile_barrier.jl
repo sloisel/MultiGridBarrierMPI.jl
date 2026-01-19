@@ -4,13 +4,13 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using LinearAlgebra
 using SparseArrays
 import Statistics: mean, median
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 println("="^70)
 println("Barrier function profiling")
@@ -24,7 +24,7 @@ for L in [5, 6]
     println("="^70)
 
     # Create geometry
-    g_mpi = fem2d_mpi(Float64; L=L)
+    g_hpc = fem2d_hpc(Float64; L=L)
     g_native = fem2d(Float64; L=L)
 
     n = size(g_native.x, 1)
@@ -33,13 +33,13 @@ for L in [5, 6]
     # Create initial solution (like in amgb)
     dim = 2
     z_native = hcat(g_native.x, ones(n, dim+2))  # n x (2+dim+2) = n x 6
-    z_mpi = HPCLinearAlgebra.HPCMatrix(z_native; row_partition=g_mpi.x.row_partition)
+    z_hpc = HPCSparseArrays.HPCMatrix(z_native; row_partition=g_hpc.x.row_partition)
 
     # Get the operators we need
     x_native = g_native.x
     w_native = g_native.w
-    x_mpi = g_mpi.x
-    w_mpi = g_mpi.w
+    x_hpc = g_hpc.x
+    w_hpc = g_hpc.w
 
     # 1. Profile map_rows with scalar function
     f0_like = (row_z, w) -> w * (row_z[3]^2 + row_z[4]^2)
@@ -56,7 +56,7 @@ for L in [5, 6]
     mpi_f0 = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
+        result = sum(HPCSparseArrays.map_rows(f0_like, z_hpc, w_hpc))
         t = time_ns() - t
         push!(mpi_f0, t)
     end
@@ -83,7 +83,7 @@ for L in [5, 6]
     mpi_f1 = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = HPCLinearAlgebra.map_rows(f1_like, z_mpi, w_mpi)
+        result = HPCSparseArrays.map_rows(f1_like, z_hpc, w_hpc)
         t = time_ns() - t
         push!(mpi_f1, t)
     end
@@ -95,7 +95,7 @@ for L in [5, 6]
     # 3. sum of HPCVector
     println("\n3. sum of HPCVector:")
     v_native = w_native
-    v_mpi = w_mpi
+    v_mpi = w_hpc
 
     native_sum = Float64[]
     for _ in 1:N_ITER
@@ -134,11 +134,11 @@ for L in [5, 6]
     mpi_seq = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        r1 = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
-        r2 = HPCLinearAlgebra.map_rows(f1_like, z_mpi, w_mpi)
-        r3 = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
-        r4 = HPCLinearAlgebra.map_rows(f1_like, z_mpi, w_mpi)
-        r5 = sum(HPCLinearAlgebra.map_rows(f0_like, z_mpi, w_mpi))
+        r1 = sum(HPCSparseArrays.map_rows(f0_like, z_hpc, w_hpc))
+        r2 = HPCSparseArrays.map_rows(f1_like, z_hpc, w_hpc)
+        r3 = sum(HPCSparseArrays.map_rows(f0_like, z_hpc, w_hpc))
+        r4 = HPCSparseArrays.map_rows(f1_like, z_hpc, w_hpc)
+        r5 = sum(HPCSparseArrays.map_rows(f0_like, z_hpc, w_hpc))
         t = time_ns() - t
         push!(mpi_seq, t)
     end

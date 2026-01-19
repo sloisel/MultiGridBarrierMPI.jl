@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0, materialize_transpose
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0, materialize_transpose
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,20 +22,20 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Transpose-only test (nranks=$nranks)")
 
 # Create geometry to get the D_dx operator
-g_mpi = fem1d_mpi(Float64; L=2)
+g_hpc = fem1d_hpc(Float64; L=2)
 g_native = fem1d(Float64; L=2)
 
-n = length(g_mpi.w)
+n = length(g_hpc.w)
 
 # Get operators
-D_dx_mpi = g_mpi.operators[:dx]
+D_dx_hpc = g_hpc.operators[:dx]
 Z_mpi = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 D_dx_native = g_native.operators[:dx]
 Z_native = spzeros(Float64, n, n)
 
 # Test 1: Transpose of D_dx
 println(io0(), "[DEBUG] Test 1: Transpose of D_dx")
-D_dx_t_mpi = materialize_transpose(D_dx_mpi)
+D_dx_t_mpi = materialize_transpose(D_dx_hpc)
 D_dx_t_native = SparseMatrixCSC(D_dx_t_mpi)
 
 if rank == 0
@@ -47,15 +47,15 @@ end
 
 # Test 2: Create D0_dx = hcat(D_dx, Z) and test its transpose
 println(io0(), "[DEBUG] Test 2: D0_dx = hcat(D_dx, Z) and its transpose")
-D0_dx_mpi = hcat(D_dx_mpi, Z_mpi)
+D0_dx_hpc = hcat(D_dx_hpc, Z_mpi)
 D0_dx_native = hcat(D_dx_native, Z_native)
 
-println(io0(), "[DEBUG] D0_dx size: $(size(D0_dx_mpi))")
-println(io0(), "[DEBUG] D0_dx row_partition: $(D0_dx_mpi.row_partition)")
-println(io0(), "[DEBUG] D0_dx col_partition: $(D0_dx_mpi.col_partition)")
+println(io0(), "[DEBUG] D0_dx size: $(size(D0_dx_hpc))")
+println(io0(), "[DEBUG] D0_dx row_partition: $(D0_dx_hpc.row_partition)")
+println(io0(), "[DEBUG] D0_dx col_partition: $(D0_dx_hpc.col_partition)")
 
 # Materialize the transpose
-D0_dx_t_mpi = materialize_transpose(D0_dx_mpi)
+D0_dx_t_mpi = materialize_transpose(D0_dx_hpc)
 
 println(io0(), "[DEBUG] D0_dx' size: $(size(D0_dx_t_mpi))")
 println(io0(), "[DEBUG] D0_dx' row_partition: $(D0_dx_t_mpi.row_partition)")
@@ -88,10 +88,10 @@ end
 # Test 3: Now test the multiplication D0_dx' * foo where foo is diagonal
 println(io0(), "[DEBUG] Test 3: D0_dx' * foo (diagonal)")
 
-w_mpi = g_mpi.w
+w_hpc = g_hpc.w
 w_native = g_native.w
 y11 = ones(n) * 0.5
-foo_mpi = spdiagm(n, n, 0 => w_mpi .* HPCVector(y11))
+foo_mpi = spdiagm(n, n, 0 => w_hpc .* HPCVector(y11))
 foo_native = spdiagm(n, n, 0 => w_native .* y11)
 
 println(io0(), "[DEBUG] foo size: $(size(foo_mpi))")

@@ -1,16 +1,16 @@
 # User Guide
 
-This guide covers the essential workflows for using MultiGridBarrierMPI.jl.
+This guide covers the essential workflows for using HPCMultiGridBarrier.jl.
 
 ## Initialization
 
-Every program using MultiGridBarrierMPI.jl must initialize MPI before using the package:
+Every program using HPCMultiGridBarrier.jl must initialize MPI before using the package:
 
 ```julia
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
+using HPCMultiGridBarrier
 ```
 
 ## Basic Workflow
@@ -29,15 +29,15 @@ Here's a complete example that solves a 2D FEM problem, converts the solution, a
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using MultiGridBarrier
 
 # Step 1: Solve with MPI distributed types
-sol_mpi = fem2d_mpi_solve(Float64; L=3, p=1.0, verbose=false)
+sol_hpc = fem2d_hpc_solve(Float64; L=3, p=1.0, verbose=false)
 
 # Step 2: Convert solution to native Julia types
-sol_native = mpi_to_native(sol_mpi)
+sol_native = hpc_to_native(sol_hpc)
 
 # Step 3: Plot the solution using MultiGridBarrier's plot function
 rank = MPI.Comm_rank(MPI.COMM_WORLD)
@@ -61,7 +61,7 @@ println(io0(), "Solution plotted!")
 ## Understanding MPI Collective Operations
 
 !!! warning "All Functions Are Collective"
-    All exported functions in MultiGridBarrierMPI.jl are **MPI collective operations**. This means:
+    All exported functions in HPCMultiGridBarrier.jl are **MPI collective operations**. This means:
     - All MPI ranks must call the function
     - All ranks must call it with the same parameters
     - Deadlock will occur if only some ranks call a collective function
@@ -69,14 +69,14 @@ println(io0(), "Solution plotted!")
 **Correct usage:**
 ```julia
 # All ranks execute this together
-sol = fem2d_mpi_solve(Float64; L=2, p=1.0)
+sol = fem2d_hpc_solve(Float64; L=2, p=1.0)
 ```
 
 **Incorrect usage (causes deadlock):**
 ```julia
 rank = MPI.Comm_rank(MPI.COMM_WORLD)
 if rank == 0
-    sol = fem2d_mpi_solve(Float64; L=2, p=1.0)  # Only rank 0 calls - DEADLOCK!
+    sol = fem2d_hpc_solve(Float64; L=2, p=1.0)  # Only rank 0 calls - DEADLOCK!
 end
 ```
 
@@ -93,7 +93,7 @@ using MultiGridBarrier
 g_native = fem2d(; L=2)
 
 # Convert to MPI types for distributed computation
-g_mpi = native_to_mpi(g_native)
+g_hpc = native_to_hpc(g_native)
 ```
 
 **Type mappings:**
@@ -110,12 +110,12 @@ Convert MPI types back to native Julia arrays:
 
 ```julia
 # Create and solve with MPI types
-g_mpi = fem2d_mpi(Float64; L=2)
-sol_mpi = amgb(g_mpi; p=2.0)
+g_hpc = fem2d_hpc(Float64; L=2)
+sol_hpc = amgb(g_hpc; p=2.0)
 
 # Convert back for analysis
-g_native = mpi_to_native(g_mpi)
-sol_native = mpi_to_native(sol_mpi)
+g_native = hpc_to_native(g_hpc)
+sol_native = hpc_to_native(sol_hpc)
 
 # Now you can use native Julia operations
 using LinearAlgebra
@@ -134,25 +134,25 @@ For more control, construct geometries manually:
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using MultiGridBarrier
 
 # 1. Create native geometry with specific parameters
 g_native = fem2d(; L=2)
 
 # 2. Convert to MPI for distributed solving
-g_mpi = native_to_mpi(g_native)
+g_hpc = native_to_hpc(g_native)
 
 # 3. Solve with custom barrier parameters
-sol_mpi = amgb(g_mpi;
+sol_hpc = amgb(g_hpc;
     p=1.5,           # Barrier power parameter
     verbose=true,    # Print convergence info
     maxit=100,       # Maximum iterations
     tol=1e-8)        # Convergence tolerance
 
 # 4. Convert solution back
-sol_native = mpi_to_native(sol_mpi)
+sol_native = hpc_to_native(sol_hpc)
 
 # 5. Access solution components
 println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
@@ -167,14 +167,14 @@ Verify that MPI and native implementations give the same results:
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using MultiGridBarrier
 using LinearAlgebra
 
 # Solve with MPI (distributed)
-sol_mpi_dist = fem2d_mpi_solve(Float64; L=2, p=1.0, verbose=false)
-z_mpi = mpi_to_native(sol_mpi_dist).z
+sol_hpc_dist = fem2d_hpc_solve(Float64; L=2, p=1.0, verbose=false)
+z_hpc = hpc_to_native(sol_hpc_dist).z
 
 # Solve with native (sequential, on rank 0)
 rank = MPI.Comm_rank(MPI.COMM_WORLD)
@@ -183,7 +183,7 @@ if rank == 0
     z_native = sol_native.z
 
     # Compare solutions
-    diff = norm(z_mpi - z_native) / norm(z_native)
+    diff = norm(z_hpc - z_native) / norm(z_native)
     println("Relative difference: ", diff)
     @assert diff < 1e-10 "Solutions should match!"
 end
@@ -193,10 +193,10 @@ end
 
 ### Printing from One Rank
 
-Use `io0()` from HPCLinearAlgebra to print from rank 0 only:
+Use `io0()` from HPCSparseArrays to print from rank 0 only:
 
 ```julia
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # This prints once (from rank 0)
 println(io0(), "Hello from rank 0!")
@@ -239,7 +239,7 @@ ENV["OPENBLAS_NUM_THREADS"] = string(Sys.CPU_THREADS)
 
 ### Performance Comparison (Single-Rank)
 
-The following table compares MultiGridBarrierMPI (using MUMPS) against MultiGridBarrier.jl's native solver on a 2D p-Laplace problem. Both use `OMP_NUM_THREADS=1` and `OPENBLAS_NUM_THREADS=10`. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
+The following table compares HPCMultiGridBarrier (using MUMPS) against MultiGridBarrier.jl's native solver on a 2D p-Laplace problem. Both use `OMP_NUM_THREADS=1` and `OPENBLAS_NUM_THREADS=10`. Benchmarks were run on a 2025 M4 MacBook Pro with 10 CPU cores:
 
 | L | n (grid points) | Native (s) | MPI (s) | Ratio | Diff |
 |---|-----------------|------------|---------|-------|------|
@@ -259,7 +259,7 @@ For medium-sized problems (L=4-5) and large problems (L=8), the MPI version is f
 
 ## 1D Problems
 
-MultiGridBarrierMPI supports 1D finite element problems.
+HPCMultiGridBarrier supports 1D finite element problems.
 
 ### Basic 1D Example
 
@@ -267,14 +267,14 @@ MultiGridBarrierMPI supports 1D finite element problems.
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 
 # Solve a 1D problem with 4 multigrid levels (2^4 = 16 elements)
-sol = fem1d_mpi_solve(Float64; L=4, p=1.0, verbose=true)
+sol = fem1d_hpc_solve(Float64; L=4, p=1.0, verbose=true)
 
 # Convert solution to native types for analysis
-sol_native = mpi_to_native(sol)
+sol_native = hpc_to_native(sol)
 
 println(io0(), "Solution computed successfully!")
 println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
@@ -282,7 +282,7 @@ println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
 
 ### 1D Parameters
 
-The `fem1d_mpi` and `fem1d_mpi_solve` functions accept:
+The `fem1d_hpc` and `fem1d_hpc_solve` functions accept:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -296,14 +296,14 @@ The `fem1d_mpi` and `fem1d_mpi_solve` functions accept:
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 
 # Solve a 2D problem
-sol = fem2d_mpi_solve(Float64; L=2, p=1.0, verbose=true)
+sol = fem2d_hpc_solve(Float64; L=2, p=1.0, verbose=true)
 
 # Convert solution to native types for analysis
-sol_native = mpi_to_native(sol)
+sol_native = hpc_to_native(sol)
 
 println(io0(), "Solution computed successfully!")
 println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
@@ -318,7 +318,7 @@ println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
 
 ## 3D Problems
 
-MultiGridBarrierMPI supports 3D hexahedral finite elements.
+HPCMultiGridBarrier supports 3D hexahedral finite elements.
 
 ### Basic 3D Example
 
@@ -326,14 +326,14 @@ MultiGridBarrierMPI supports 3D hexahedral finite elements.
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 
 # Solve a 3D problem with Q3 elements and 2 multigrid levels
-sol = fem3d_mpi_solve(Float64; L=2, k=3, p=1.0, verbose=true)
+sol = fem3d_hpc_solve(Float64; L=2, k=3, p=1.0, verbose=true)
 
 # Convert solution to native types for analysis
-sol_native = mpi_to_native(sol)
+sol_native = hpc_to_native(sol)
 
 println(io0(), "Solution computed successfully!")
 println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
@@ -348,7 +348,7 @@ println(io0(), "Newton steps: ", sum(sol_native.SOL_main.its))
 
 ## Time-Dependent (Parabolic) Problems
 
-MultiGridBarrierMPI supports time-dependent parabolic PDEs through MultiGridBarrier.jl's `parabolic_solve` function.
+HPCMultiGridBarrier supports time-dependent parabolic PDEs through MultiGridBarrier.jl's `parabolic_solve` function.
 
 ### Basic Parabolic Example
 
@@ -356,12 +356,12 @@ MultiGridBarrierMPI supports time-dependent parabolic PDEs through MultiGridBarr
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using MultiGridBarrier
 
 # Create MPI geometry
-g = fem2d_mpi(Float64; L=2)
+g = fem2d_hpc(Float64; L=2)
 
 # Solve time-dependent problem from t=0 to t=1 with timestep h=0.2
 sol = parabolic_solve(g; h=0.2, p=1.0, verbose=true)
@@ -373,11 +373,11 @@ println(io0(), "Number of timesteps: ", length(sol.ts))
 ### Converting Parabolic Solutions to Native Types
 
 ```julia
-g = fem2d_mpi(Float64; L=2)
-sol_mpi = parabolic_solve(g; h=0.25, p=1.0, verbose=false)
+g = fem2d_hpc(Float64; L=2)
+sol_hpc = parabolic_solve(g; h=0.25, p=1.0, verbose=false)
 
 # Convert to native types
-sol_native = mpi_to_native(sol_mpi)
+sol_native = hpc_to_native(sol_hpc)
 
 # Now sol_native.u contains Vector{Matrix{Float64}}
 println(io0(), "Native u type: ", typeof(sol_native.u))
@@ -392,11 +392,11 @@ println(io0(), "Snapshot size: ", size(sol_native.u[1]))
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 
-sol = fem2d_mpi_solve(Float64; L=3, p=1.0)
-sol_native = mpi_to_native(sol)
+sol = fem2d_hpc_solve(Float64; L=3, p=1.0)
+sol_native = hpc_to_native(sol)
 
 # Access solution data
 z = sol_native.z  # Solution matrix

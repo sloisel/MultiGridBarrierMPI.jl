@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -25,7 +25,7 @@ if rank == 0
 end
 
 # Create geometry (same as test_quick.jl)
-g = fem1d_mpi(Float64; L=3)
+g = fem1d_hpc(Float64; L=3)
 
 if rank == 0
     println("[DEBUG] Geometry created")
@@ -116,8 +116,8 @@ if haskey(g.subspaces, :dirichlet) && length(g.subspaces[:dirichlet]) > 0
     end
 
     try
-        x_mpi = RtDtWDR \ b_mpi
-        x_native = Vector(x_mpi)
+        x_hpc = RtDtWDR \ b_mpi
+        x_native = Vector(x_hpc)
         if rank == 0
             println("[DEBUG] Solve succeeded!")
             println("[DEBUG] Solution: $x_native")

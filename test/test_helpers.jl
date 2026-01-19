@@ -11,12 +11,12 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-# Use MultiGridBarrierMPI initializer
-using MultiGridBarrierMPI
+# Use HPCMultiGridBarrier initializer
+using HPCMultiGridBarrier
 
 # Now load dependencies for tests
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using StaticArrays: SVector
@@ -51,7 +51,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
     end
 
     A_proto = HPCSparseMatrix(spzeros(T, 10, 10), backend)
-    Z = MultiGridBarrierMPI.amgb_zeros(A_proto, 5, 5)
+    Z = HPCMultiGridBarrier.amgb_zeros(A_proto, 5, 5)
     @test Z isa HPCSparseMatrix
     @test size(Z) == (5, 5)
 
@@ -62,7 +62,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
     end
 
     A_proto_dense = HPCMatrix(zeros(T, 10, 10), backend)
-    Z_dense = MultiGridBarrierMPI.amgb_zeros(A_proto_dense, 4, 6)
+    Z_dense = HPCMultiGridBarrier.amgb_zeros(A_proto_dense, 4, 6)
     @test Z_dense isa HPCMatrix
     @test size(Z_dense) == (4, 6)
 
@@ -73,7 +73,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
     end
 
     v_finite = HPCVector(T[1, 2, 3], backend)
-    @test MultiGridBarrierMPI.amgb_all_isfinite(v_finite) == true
+    @test HPCMultiGridBarrier.amgb_all_isfinite(v_finite) == true
 
     # Test 4: amgb_all_isfinite with invalid HPCVector
     if rank == 0
@@ -82,7 +82,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
     end
 
     v_inf = HPCVector(T[1, Inf, 3], backend)
-    @test MultiGridBarrierMPI.amgb_all_isfinite(v_inf) == false
+    @test HPCMultiGridBarrier.amgb_all_isfinite(v_inf) == false
 
     # Test 5: amgb_diag with HPCVector
     if rank == 0
@@ -92,7 +92,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
 
     A_proto = HPCSparseMatrix(spzeros(T, 10, 10), backend)
     v = HPCVector(T[1, 2, 3], backend)
-    D = MultiGridBarrierMPI.amgb_diag(A_proto, v)
+    D = HPCMultiGridBarrier.amgb_diag(A_proto, v)
     @test D isa HPCSparseMatrix
     @test size(D) == (3, 3)
 
@@ -104,7 +104,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
 
     A_proto = HPCSparseMatrix(spzeros(T, 10, 10), backend)
     v_native = T[1, 2, 3, 4]
-    D = MultiGridBarrierMPI.amgb_diag(A_proto, v_native)
+    D = HPCMultiGridBarrier.amgb_diag(A_proto, v_native)
     @test D isa HPCSparseMatrix
     @test size(D) == (4, 4)
 
@@ -116,7 +116,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
 
     A = HPCSparseMatrix(sparse(T(1) * I(2)), backend)
     B = HPCSparseMatrix(sparse(T(1) * I(3)), backend)
-    C = MultiGridBarrierMPI.amgb_blockdiag(A, B)
+    C = HPCMultiGridBarrier.amgb_blockdiag(A, B)
     @test C isa HPCSparseMatrix
     @test size(C) == (5, 5)
 
@@ -127,7 +127,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
     end
 
     x = HPCMatrix(T[1 2; 3 4; 5 6], backend)
-    result = MultiGridBarrierMPI.map_rows(row -> sum(row), x)
+    result = HPCMultiGridBarrier.map_rows(row -> sum(row), x)
     @test result isa HPCVector
     @test length(result) == 3
     result_native = Vector(TestUtils.to_cpu(result))
@@ -142,7 +142,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
     end
 
     x = HPCMatrix(T[1 2; 3 4], backend)
-    result = MultiGridBarrierMPI.map_rows(row -> SVector(sum(row), prod(row)), x)
+    result = HPCMultiGridBarrier.map_rows(row -> SVector(sum(row), prod(row)), x)
     @test result isa HPCMatrix
     @test size(result) == (2, 2)
     result_native = Matrix(TestUtils.to_cpu(result))
@@ -159,7 +159,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS
 
     x = HPCMatrix(T[1 2; 3 4], backend)
     y = HPCVector(T[10, 20], backend)
-    result = MultiGridBarrierMPI.map_rows((row_x, row_y) -> sum(row_x) + row_y[1], x, y)
+    result = HPCMultiGridBarrier.map_rows((row_x, row_y) -> sum(row_x) + row_y[1], x, y)
     @test result isa HPCVector
     @test length(result) == 2
     result_native = Vector(TestUtils.to_cpu(result))

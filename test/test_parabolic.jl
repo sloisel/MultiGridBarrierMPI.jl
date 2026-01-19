@@ -6,12 +6,12 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-# Use MultiGridBarrierMPI initializer
-using MultiGridBarrierMPI
+# Use HPCMultiGridBarrier initializer
+using HPCMultiGridBarrier
 
 # Now load dependencies for tests
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -38,7 +38,7 @@ if rank == 0
 end
 
 if rank == 0; println("[DEBUG] Creating geometry..."); flush(stdout); end
-g = fem1d_mpi(Float64; L=2)
+g = fem1d_hpc(Float64; L=2)
 if rank == 0; println("[DEBUG] Geometry created"); flush(stdout); end
 @test g isa MultiGridBarrier.Geometry
 @test g.x isa HPCMatrix
@@ -68,11 +68,11 @@ end
 
 # Test 3: Convert ParabolicSOL to native
 if rank == 0
-    println("[DEBUG] Test 3: mpi_to_native(ParabolicSOL)")
+    println("[DEBUG] Test 3: hpc_to_native(ParabolicSOL)")
     flush(stdout)
 end
 
-sol_native = mpi_to_native(sol)
+sol_native = hpc_to_native(sol)
 @test sol_native isa ParabolicSOL
 @test sol_native.geometry.x isa Matrix
 @test sol_native.u[1] isa Matrix

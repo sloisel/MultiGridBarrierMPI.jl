@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# Profile fem2d_mpi_solve at L=5 to identify overhead
+# Profile fem2d_hpc_solve at L=5 to identify overhead
 #
 
 using MPI
@@ -13,7 +13,7 @@ io0(args...) = rank == 0 && println(args...)
 
 io0("Loading packages...")
 using MultiGridBarrier
-using MultiGridBarrierMPI
+using HPCMultiGridBarrier
 using LinearAlgebra
 using Profile
 using Printf
@@ -21,17 +21,17 @@ using Printf
 L = 5
 
 io0("\n" * "="^70)
-io0("Profiling fem2d_mpi_solve at L=$L")
+io0("Profiling fem2d_hpc_solve at L=$L")
 io0("="^70)
 
 # Warmup
 io0("\nWarmup...")
-fem2d_mpi_solve(Float64; L=L, verbose=false)
+fem2d_hpc_solve(Float64; L=L, verbose=false)
 
 # Profile the MPI solve
 io0("\nProfiling MPI solve...")
 Profile.clear()
-@profile fem2d_mpi_solve(Float64; L=L, verbose=false)
+@profile fem2d_hpc_solve(Float64; L=L, verbose=false)
 
 if rank == 0
     io0("\n--- Profile Results ---\n")

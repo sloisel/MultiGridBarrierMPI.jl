@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,24 +22,24 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Testing column extraction and element-wise ops (nranks=$nranks)")
 
 # Create geometry
-g = fem1d_mpi(Float64; L=2)
+g = fem1d_hpc(Float64; L=2)
 
 # Get a sample matrix from map_rows
 D_op = [g.operators[:dx], g.operators[:id]]
 n = length(g.w)
 z_native = sin.(range(0, π, length=n))
-z_mpi = HPCVector(z_native)
+z_hpc = HPCVector(z_native)
 
 # Apply D operators to get matrix
-Dz_mpi = hcat([D * z_mpi for D in D_op]...)
+Dz_hpc = hcat([D * z_hpc for D in D_op]...)
 
-println(io0(), "[DEBUG] Dz_mpi size: $(size(Dz_mpi))")
-println(io0(), "[DEBUG] Dz_mpi row_partition: $(Dz_mpi.row_partition)")
-println(io0(), "[DEBUG] Dz_mpi col_partition: $(Dz_mpi.col_partition)")
+println(io0(), "[DEBUG] Dz_hpc size: $(size(Dz_hpc))")
+println(io0(), "[DEBUG] Dz_hpc row_partition: $(Dz_hpc.row_partition)")
+println(io0(), "[DEBUG] Dz_hpc col_partition: $(Dz_hpc.col_partition)")
 
 # Now use map_rows to create a matrix like F2 does
 x = g.x
-y_mpi = MultiGridBarrier.map_rows((xi, qi) -> [qi[1]^2, qi[2]^2, qi[1]*qi[2], qi[1]*qi[2]]', x, Dz_mpi)
+y_mpi = MultiGridBarrier.map_rows((xi, qi) -> [qi[1]^2, qi[2]^2, qi[1]*qi[2], qi[1]*qi[2]]', x, Dz_hpc)
 
 println(io0(), "[DEBUG] y_mpi (from map_rows) size: $(size(y_mpi))")
 println(io0(), "[DEBUG] y_mpi row_partition: $(y_mpi.row_partition)")

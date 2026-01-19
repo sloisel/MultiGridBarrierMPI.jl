@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using MultiGridBarrierMPI
-MultiGridBarrierMPI.Init()
+using HPCMultiGridBarrier
+HPCMultiGridBarrier.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -24,9 +24,9 @@ nranks = MPI.Comm_size(comm)
 # results with different structures (due to numerical cancellation).
 
 # Create geometry
-g = fem1d_mpi(Float64; L=2)
+g = fem1d_hpc(Float64; L=2)
 D_op = [g.operators[:dx], g.operators[:id]]
-w_mpi = g.w
+w_hpc = g.w
 R = g.subspaces[:dirichlet][end]
 
 # Native version for comparison
@@ -36,7 +36,7 @@ w_native = g_native.w
 R_native = g_native.subspaces[:dirichlet][end]
 
 # Create test y values (simulating output from map_rows in f2)
-n = length(w_mpi)
+n = length(w_hpc)
 y_vals = zeros(n, 4)
 y_vals[:, 1] = ones(n) .* 0.5  # Hessian entry (1,1)
 y_vals[:, 2] = ones(n) .* 0.1  # Hessian entry (1,2)
@@ -47,16 +47,16 @@ y_mpi = HPCMatrix(y_vals)
 
 # Build Hessian the same way f2 does (MPI version)
 # j=1: dx' * diag(w .* y[:,1]) * dx
-foo = MultiGridBarrier.amgb_diag(D_op[1], w_mpi .* y_mpi[:, 1])
+foo = MultiGridBarrier.amgb_diag(D_op[1], w_hpc .* y_mpi[:, 1])
 ret_mpi = D_op[1]' * foo * D_op[1]
 
 # j=2: id' * diag(w .* y[:,4]) * id
-foo = MultiGridBarrier.amgb_diag(D_op[1], w_mpi .* y_mpi[:, 4])
+foo = MultiGridBarrier.amgb_diag(D_op[1], w_hpc .* y_mpi[:, 4])
 bar = D_op[2]' * foo * D_op[2]
 ret_mpi = ret_mpi + bar
 
 # Cross terms: (id' * foo * dx) + (dx' * foo * id)
-foo = MultiGridBarrier.amgb_diag(D_op[1], w_mpi .* y_mpi[:, 3])
+foo = MultiGridBarrier.amgb_diag(D_op[1], w_hpc .* y_mpi[:, 3])
 term1 = D_op[2]' * foo * D_op[1]  # id' * foo * dx
 term2 = D_op[1]' * foo * D_op[2]  # dx' * foo * id
 cross_term = term1 + term2  # This was failing before the fix!

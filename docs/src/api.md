@@ -1,6 +1,6 @@
 # API Reference
 
-This page provides detailed documentation for all exported functions in MultiGridBarrierMPI.jl.
+This page provides detailed documentation for all exported functions in HPCMultiGridBarrier.jl.
 
 !!! note "All Functions Are Collective"
     All functions documented here are **MPI collective operations**. Every MPI rank must call these functions together with the same parameters. Failure to do so will result in deadlock.
@@ -12,32 +12,32 @@ These functions provide the simplest interface for solving problems with MPI typ
 ### 1D Problems
 
 ```@docs
-fem1d_mpi
-fem1d_mpi_solve
+fem1d_hpc
+fem1d_hpc_solve
 ```
 
 ### 2D Problems
 
 ```@docs
-fem2d_mpi
-fem2d_mpi_solve
+fem2d_hpc
+fem2d_hpc_solve
 ```
 
 ### 3D Problems
 
 ```@docs
-fem3d_mpi
-fem3d_mpi_solve
+fem3d_hpc
+fem3d_hpc_solve
 ```
 
 ## Type Conversion API
 
 These functions convert between native Julia types and MPI distributed types.
-The `mpi_to_native` function dispatches on type, handling `Geometry`, `AMGBSOL`, and `ParabolicSOL` objects.
+The `hpc_to_native` function dispatches on type, handling `Geometry`, `AMGBSOL`, and `ParabolicSOL` objects.
 
 ```@docs
-native_to_mpi
-mpi_to_native
+native_to_hpc
+hpc_to_native
 ```
 
 ## Type Mappings Reference
@@ -104,12 +104,12 @@ The `AMGBSOL` type from MultiGridBarrier contains the complete solution:
 
 ## MPI and IO Utilities
 
-### HPCLinearAlgebra.io0()
+### HPCSparseArrays.io0()
 
 Returns an IO stream that only writes on rank 0:
 
 ```julia
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 println(io0(), "This prints once from rank 0")
 ```
@@ -131,8 +131,8 @@ nranks = MPI.Comm_size(MPI.COMM_WORLD)  # Total number of ranks
 using MPI
 MPI.Init()
 
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCMultiGridBarrier
+using HPCSparseArrays
 using MultiGridBarrier
 using LinearAlgebra
 
@@ -140,14 +140,14 @@ using LinearAlgebra
 g_native = fem2d(; L=2)
 
 # Convert to MPI
-g_mpi = native_to_mpi(g_native)
+g_hpc = native_to_hpc(g_native)
 
 # Solve with MPI types
-sol_mpi = amgb(g_mpi; p=2.0)
+sol_hpc = amgb(g_hpc; p=2.0)
 
 # Convert back to native
-sol_native = mpi_to_native(sol_mpi)
-g_back = mpi_to_native(g_mpi)
+sol_native = hpc_to_native(sol_hpc)
+g_back = hpc_to_native(g_hpc)
 
 # Verify round-trip accuracy
 @assert norm(g_native.x - g_back.x) < 1e-10
@@ -162,8 +162,8 @@ g_native = fem2d(; L=2)
 id_native = g_native.operators[:id]  # SparseMatrixCSC
 
 # MPI geometry
-g_mpi = native_to_mpi(g_native)
-id_mpi = g_mpi.operators[:id]  # HPCSparseMatrix
+g_hpc = native_to_hpc(g_native)
+id_mpi = g_hpc.operators[:id]  # HPCSparseMatrix
 
 # Convert back if needed
 id_back = SparseMatrixCSC(id_mpi)  # SparseMatrixCSC
@@ -177,7 +177,7 @@ All MultiGridBarrier functions work seamlessly with MPI types:
 using MultiGridBarrier: amgb
 
 # Create MPI geometry
-g = fem2d_mpi(Float64; L=3)
+g = fem2d_hpc(Float64; L=3)
 
 # Use MultiGridBarrier functions directly
 sol = amgb(g; p=1.0, verbose=true)

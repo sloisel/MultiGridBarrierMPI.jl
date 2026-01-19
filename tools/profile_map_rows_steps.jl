@@ -9,14 +9,14 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCVector_local, HPCMatrix_local
-using HPCLinearAlgebra: _get_row_partition, _align_to_partition, _local_rows
+using HPCMultiGridBarrier
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCVector_local, HPCMatrix_local
+using HPCSparseArrays: _get_row_partition, _align_to_partition, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 
-MultiGridBarrierMPI.Init()
+HPCMultiGridBarrier.Init()
 
 const L = 6
 const N_ITER = 100  # Number of iterations for timing
@@ -30,12 +30,12 @@ rank = MPI.Comm_rank(comm)
 nranks = MPI.Comm_size(comm)
 
 # Create geometry
-g_mpi = fem2d_mpi(Float64; L=L)
-x_mpi = g_mpi.x  # HPCMatrix (n x 2)
-w_mpi = g_mpi.w  # HPCVector (n)
+g_hpc = fem2d_hpc(Float64; L=L)
+x_hpc = g_hpc.x  # HPCMatrix (n x 2)
+w_hpc = g_hpc.w  # HPCVector (n)
 
-println("Grid size (global): ", sum(x_mpi.row_partition))
-println("Local rows: ", size(x_mpi.A, 1))
+println("Grid size (global): ", sum(x_hpc.row_partition))
+println("Local rows: ", size(x_hpc.A, 1))
 println("MPI ranks: ", nranks)
 
 # Test function (typical barrier pattern)
@@ -53,7 +53,7 @@ for key in ["total", "get_partition", "align", "local_rows", "comprehension",
 end
 
 for iter in 1:N_ITER
-    A = (x_mpi, w_mpi)
+    A = (x_hpc, w_hpc)
 
     t_total_start = time_ns()
 
@@ -177,8 +177,8 @@ println("\n" * "-"^70)
 println("Comparison: Native map_rows")
 println("-"^70)
 
-x_native = x_mpi.A
-w_native = w_mpi.v
+x_native = x_hpc.A
+w_native = w_hpc.v
 
 native_times = Float64[]
 for _ in 1:N_ITER
@@ -204,7 +204,7 @@ f_rowvec = (row_x, w) -> (w * row_x)'  # Returns 1x2 row vector
 mpi_rowvec_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = MultiGridBarrier.map_rows(f_rowvec, x_mpi, w_mpi)
+    result = MultiGridBarrier.map_rows(f_rowvec, x_hpc, w_hpc)
     t = time_ns() - t
     push!(mpi_rowvec_times, t)
 end
