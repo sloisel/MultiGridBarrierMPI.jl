@@ -7,17 +7,17 @@
 
 **Author:** S. Loisel
 
-A Julia package that bridges MultiGridBarrier.jl and HPCLinearAlgebra.jl for distributed multigrid barrier computations using native MPI types.
+A Julia package that bridges MultiGridBarrier.jl and HPCSparseArrays.jl for distributed multigrid barrier computations using native MPI types.
 
 ## Overview
 
-MultiGridBarrierMPI.jl extends the MultiGridBarrier.jl package to work with HPCLinearAlgebra.jl's distributed matrix and vector types. This enables efficient parallel computation of multigrid barrier methods across multiple MPI ranks without requiring PETSc.
+MultiGridBarrierMPI.jl extends the MultiGridBarrier.jl package to work with HPCSparseArrays.jl's distributed matrix and vector types. This enables efficient parallel computation of multigrid barrier methods across multiple MPI ranks without requiring PETSc.
 
 ## Key Features
 
 - **1D, 2D, and 3D Support**: Full support for 1D, 2D triangular, and 3D hexahedral finite elements
 - **Seamless Integration**: Drop-in replacement for MultiGridBarrier's native types
-- **Pure Julia MPI**: Uses HPCLinearAlgebra.jl for distributed linear algebra (no external libraries required)
+- **Pure Julia MPI**: Uses HPCSparseArrays.jl for distributed linear algebra (no external libraries required)
 - **Type Conversion**: Easy conversion between native Julia arrays and MPI distributed types
 - **MPI-Aware**: All operations correctly handle MPI collective requirements
 - **MUMPS Solver**: Uses MUMPS direct solver for accurate Newton iterations
@@ -31,7 +31,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # Solve with MPI distributed types (L=3 refinement levels)
 sol_mpi = fem2d_mpi_solve(Float64; L=3, p=1.0, verbose=false)
@@ -92,7 +92,7 @@ julia --project make.jl
 This package is part of a larger ecosystem:
 
 - **[MultiGridBarrier.jl](https://github.com/sloisel/MultiGridBarrier.jl)**: Core multigrid barrier method implementation
-- **[HPCLinearAlgebra.jl](https://github.com/sloisel/HPCLinearAlgebra.jl)**: Pure Julia distributed linear algebra with MPI
+- **[HPCSparseArrays.jl](https://github.com/sloisel/HPCSparseArrays.jl)**: Pure Julia distributed linear algebra with MPI
 - **MPI.jl**: Julia MPI bindings for distributed computing
 
 ## Requirements

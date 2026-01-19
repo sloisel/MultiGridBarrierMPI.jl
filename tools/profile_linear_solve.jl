@@ -5,7 +5,7 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using LinearAlgebra
 using SparseArrays
 import Statistics: mean, median
@@ -44,7 +44,7 @@ for L in [5, 6]
     A_mpi = Dx_mpi' * Dx_mpi + Dy_mpi' * Dy_mpi + I_mpi
 
     b_native = ones(n)
-    b_mpi = HPCLinearAlgebra.HPCVector(b_native; partition=w_mpi.partition)
+    b_mpi = HPCSparseArrays.HPCVector(b_native; partition=w_mpi.partition)
 
     # Native solve
     println("\nNative linear solve (sparse \\):")

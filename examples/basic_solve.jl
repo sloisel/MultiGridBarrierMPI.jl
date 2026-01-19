@@ -15,7 +15,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using MultiGridBarrier
 using LinearAlgebra
 

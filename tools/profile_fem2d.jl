@@ -11,8 +11,8 @@ MPI.Init()
 println("Loading packages...")
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, _ensure_hash
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, _ensure_hash
 using LinearAlgebra
 using SparseArrays
 

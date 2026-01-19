@@ -12,7 +12,7 @@ io0(args...) = rank == 0 && println(args...)
 io0("Loading packages...")
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using LinearAlgebra
 using SparseArrays
 using Printf
@@ -72,10 +72,10 @@ x_mpi = g_mpi.x
 f_hess = x -> [sum(x.^2), prod(x)]'
 
 for _ in 1:3
-    _ = HPCLinearAlgebra.map_rows(f_hess, x_mpi)
+    _ = HPCSparseArrays.map_rows(f_hess, x_mpi)
 end
 t_mpi = @elapsed for _ in 1:10
-    _ = HPCLinearAlgebra.map_rows(f_hess, x_mpi)
+    _ = HPCSparseArrays.map_rows(f_hess, x_mpi)
 end
 io0("  MPI:    $(round(t_mpi/10*1000, digits=2)) ms per op")
 

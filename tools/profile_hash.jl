@@ -11,7 +11,7 @@ io0(args...) = rank == 0 && println(args...)
 
 io0("Loading packages...")
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using LinearAlgebra
 using SparseArrays
 

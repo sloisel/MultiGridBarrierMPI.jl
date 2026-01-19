@@ -10,7 +10,7 @@ For HPC environments, you may want to configure MPI.jl to use your system's MPI 
 
 ### MUMPS
 
-The package uses MUMPS for sparse direct solves through HPCLinearAlgebra.jl. MUMPS is typically available through your system's package manager or HPC module system.
+The package uses MUMPS for sparse direct solves through HPCSparseArrays.jl. MUMPS is typically available through your system's package manager or HPC module system.
 
 ## Package Installation
 
@@ -75,7 +75,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # Your parallel code here
 sol = fem2d_mpi_solve(Float64; L=3, p=1.0)
@@ -89,7 +89,7 @@ mpiexec -n 4 julia --project my_program.jl
 ```
 
 !!! tip "Output from Rank 0 Only"
-    Use `io0()` from HPCLinearAlgebra for output to avoid duplicate messages:
+    Use `io0()` from HPCSparseArrays for output to avoid duplicate messages:
     ```julia
     println(io0(), "This prints once from rank 0")
     ```
@@ -106,7 +106,7 @@ using Pkg; Pkg.build("MPI")
 
 ### MUMPS Issues
 
-If MUMPS fails to load, ensure it's properly installed on your system and that HPCLinearAlgebra.jl can find it.
+If MUMPS fails to load, ensure it's properly installed on your system and that HPCSparseArrays.jl can find it.
 
 ### Test Failures
 

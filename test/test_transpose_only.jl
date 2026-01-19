@@ -9,8 +9,8 @@ end
 using MultiGridBarrierMPI
 MultiGridBarrierMPI.Init()
 
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0, materialize_transpose
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0, materialize_transpose
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier

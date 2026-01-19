@@ -30,7 +30,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using MultiGridBarrier
 
 # Step 1: Solve with MPI distributed types
@@ -135,7 +135,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using MultiGridBarrier
 
 # 1. Create native geometry with specific parameters
@@ -168,7 +168,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using MultiGridBarrier
 using LinearAlgebra
 
@@ -193,10 +193,10 @@ end
 
 ### Printing from One Rank
 
-Use `io0()` from HPCLinearAlgebra to print from rank 0 only:
+Use `io0()` from HPCSparseArrays to print from rank 0 only:
 
 ```julia
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # This prints once (from rank 0)
 println(io0(), "Hello from rank 0!")
@@ -268,7 +268,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # Solve a 1D problem with 4 multigrid levels (2^4 = 16 elements)
 sol = fem1d_mpi_solve(Float64; L=4, p=1.0, verbose=true)
@@ -297,7 +297,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # Solve a 2D problem
 sol = fem2d_mpi_solve(Float64; L=2, p=1.0, verbose=true)
@@ -327,7 +327,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 # Solve a 3D problem with Q3 elements and 2 multigrid levels
 sol = fem3d_mpi_solve(Float64; L=2, k=3, p=1.0, verbose=true)
@@ -357,7 +357,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using MultiGridBarrier
 
 # Create MPI geometry
@@ -393,7 +393,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 sol = fem2d_mpi_solve(Float64; L=3, p=1.0)
 sol_native = mpi_to_native(sol)

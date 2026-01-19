@@ -10,8 +10,8 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, _get_row_partition, _align_to_partition, _local_rows
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, _get_row_partition, _align_to_partition, _local_rows
 using LinearAlgebra
 
 MultiGridBarrierMPI.Init()

@@ -104,12 +104,12 @@ The `AMGBSOL` type from MultiGridBarrier contains the complete solution:
 
 ## MPI and IO Utilities
 
-### HPCLinearAlgebra.io0()
+### HPCSparseArrays.io0()
 
 Returns an IO stream that only writes on rank 0:
 
 ```julia
-using HPCLinearAlgebra
+using HPCSparseArrays
 
 println(io0(), "This prints once from rank 0")
 ```
@@ -132,7 +132,7 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using MultiGridBarrier
 using LinearAlgebra
 

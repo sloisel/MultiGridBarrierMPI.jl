@@ -10,7 +10,7 @@ println("Loading packages...")
 using Metal
 using MultiGridBarrierMPI
 using MultiGridBarrier
-using HPCLinearAlgebra
+using HPCSparseArrays
 using Profile
 
 L = 6
@@ -21,12 +21,12 @@ println("="^70)
 
 # Warmup run
 println("\nWarmup...")
-fem2d_mpi_solve(Float32; L=L, backend=HPCLinearAlgebra.mtl, verbose=false)
+fem2d_mpi_solve(Float32; L=L, backend=HPCSparseArrays.mtl, verbose=false)
 
 # Profile
 println("\nProfiling...")
 Profile.clear()
-@profile fem2d_mpi_solve(Float32; L=L, backend=HPCLinearAlgebra.mtl, verbose=false)
+@profile fem2d_mpi_solve(Float32; L=L, backend=HPCSparseArrays.mtl, verbose=false)
 
 println("\n" * "="^70)
 println("Profile results (flat, top 40)")

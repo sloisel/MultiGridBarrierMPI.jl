@@ -10,9 +10,9 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCVector_local, HPCMatrix_local
-using HPCLinearAlgebra: _get_row_partition, _align_to_partition, _local_rows
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCVector_local, HPCMatrix_local
+using HPCSparseArrays: _get_row_partition, _align_to_partition, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 

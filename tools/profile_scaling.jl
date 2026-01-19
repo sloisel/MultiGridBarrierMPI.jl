@@ -5,7 +5,7 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using LinearAlgebra
 import Statistics: mean, median
 
@@ -33,7 +33,7 @@ for L in [5, 6]
 
     # Create test vectors
     u_native = ones(n)
-    u_mpi = HPCLinearAlgebra.HPCVector(u_native; partition=w_mpi.partition)
+    u_mpi = HPCSparseArrays.HPCVector(u_native; partition=w_mpi.partition)
 
     # 1. map_rows with scalar function
     println("\n1. map_rows (scalar):")
@@ -50,7 +50,7 @@ for L in [5, 6]
     mpi_times = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = HPCLinearAlgebra.map_rows(f_scalar, x_mpi, w_mpi)
+        result = HPCSparseArrays.map_rows(f_scalar, x_mpi, w_mpi)
         t = time_ns() - t
         push!(mpi_times, t)
     end
@@ -111,7 +111,7 @@ for L in [5, 6]
     # 4. Vector operations
     println("\n4. Vector add (u + v):")
     v_native = 2 .* u_native
-    v_mpi = HPCLinearAlgebra.HPCVector(v_native; partition=w_mpi.partition)
+    v_mpi = HPCSparseArrays.HPCVector(v_native; partition=w_mpi.partition)
 
     native_add = Float64[]
     for _ in 1:N_ITER
@@ -151,7 +151,7 @@ for L in [5, 6]
     mpi_rv = Float64[]
     for _ in 1:N_ITER
         t = time_ns()
-        result = HPCLinearAlgebra.map_rows(f_rowvec, x_mpi, w_mpi)
+        result = HPCSparseArrays.map_rows(f_rowvec, x_mpi, w_mpi)
         t = time_ns() - t
         push!(mpi_rv, t)
     end

@@ -12,8 +12,8 @@ try
     @eval using MultiGridBarrierMPI
     println("  - MultiGridBarrierMPI loaded")
     flush(stdout)
-    @eval using HPCLinearAlgebra
-    println("  - HPCLinearAlgebra loaded")
+    @eval using HPCSparseArrays
+    println("  - HPCSparseArrays loaded")
     flush(stdout)
     @eval using MultiGridBarrier
     println("  - MultiGridBarrier loaded")

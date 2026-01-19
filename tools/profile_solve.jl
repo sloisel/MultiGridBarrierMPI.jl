@@ -5,7 +5,7 @@ MPI.Init()
 
 using MultiGridBarrier
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
+using HPCSparseArrays
 using LinearAlgebra
 import Statistics: mean, median
 
@@ -51,7 +51,7 @@ w_native = w_mpi.v
 
 # Create a test vector like u
 u_test_native = ones(length(w_native))
-u_test_mpi = HPCLinearAlgebra.HPCVector(u_test_native; partition=w_mpi.partition)
+u_test_mpi = HPCSparseArrays.HPCVector(u_test_native; partition=w_mpi.partition)
 
 N_ITER = 10
 
@@ -82,7 +82,7 @@ end
 mpi_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = HPCLinearAlgebra.map_rows(f_scalar3, x_mpi, w_mpi, u_test_mpi)
+    result = HPCSparseArrays.map_rows(f_scalar3, x_mpi, w_mpi, u_test_mpi)
     t = time_ns() - t
     push!(mpi_times, t)
 end
@@ -109,7 +109,7 @@ end
 mpi_rv_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = HPCLinearAlgebra.map_rows(f_rowvec, x_mpi, w_mpi, u_test_mpi)
+    result = HPCSparseArrays.map_rows(f_rowvec, x_mpi, w_mpi, u_test_mpi)
     t = time_ns() - t
     push!(mpi_rv_times, t)
 end

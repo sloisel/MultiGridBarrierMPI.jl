@@ -3,8 +3,8 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrierMPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows, HPCVector_local
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, _local_rows, HPCVector_local
 
 MultiGridBarrierMPI.Init()
 

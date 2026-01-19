@@ -2,7 +2,7 @@
     MultiGridBarrierMPI
 
 A module that provides a convenient interface for using MultiGridBarrier with MPI
-distributed types through HPCLinearAlgebra.
+distributed types through HPCSparseArrays.
 
 # Exports
 - `fem1d_mpi`: Creates an MPI-based Geometry from fem1d parameters
@@ -44,10 +44,10 @@ sol_native = mpi_to_native(sol)
 module MultiGridBarrierMPI
 
 using MPI
-using HPCLinearAlgebra
-using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
-using HPCLinearAlgebra: HPCVector_local, HPCMatrix_local, HPCSparseMatrix_local
-using HPCLinearAlgebra: HPCBackend, backend_cpu_mpi, eltype_backend, indextype_backend
+using HPCSparseArrays
+using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCSparseArrays: HPCVector_local, HPCMatrix_local, HPCSparseMatrix_local
+using HPCSparseArrays: HPCBackend, backend_cpu_mpi, eltype_backend, indextype_backend
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -55,13 +55,13 @@ using MultiGridBarrier: Geometry, AMGBSOL, ParabolicSOL, fem1d, FEM1D, fem3d, FE
 using PrecompileTools
 
 # ============================================================================
-# MultiGridBarrier API Implementation for HPCLinearAlgebra Types
+# MultiGridBarrier API Implementation for HPCSparseArrays Types
 # ============================================================================
 
 # Import the functions we need to extend
 import MultiGridBarrier: amgb_zeros, amgb_all_isfinite, amgb_diag, amgb_blockdiag, map_rows, map_rows_gpu, vertex_indices, _raw_array, _to_cpu_array, _rows_to_svectors
 
-# amgb_zeros: Create distributed zero matrices/vectors using Base.zeros from HPCLinearAlgebra
+# amgb_zeros: Create distributed zero matrices/vectors using Base.zeros from HPCSparseArrays
 # New API: zeros(T, Ti, HPCSparseMatrix, backend, m, n) - extract backend from existing matrix
 MultiGridBarrier.amgb_zeros(A::HPCSparseMatrix{T,Ti,B}, m, n) where {T,Ti,B} =
     zeros(T, Ti, HPCSparseMatrix, A.backend, m, n)
@@ -77,7 +77,7 @@ MultiGridBarrier.amgb_zeros(A::LinearAlgebra.Adjoint{T, <:HPCMatrix{T,B}}, m, n)
 # amgb_zeros for vectors (used in multigrid coarsening)
 # New API: zeros(T, HPCVector, backend, m) - need to map backend type to instance
 # This is a bit hacky but works for the known backend types
-using HPCLinearAlgebra: backend_cpu_serial
+using HPCSparseArrays: backend_cpu_serial
 
 # Cache for GPU backend instances (created lazily when needed)
 # Key: (T, Ti) -> backend instance
@@ -89,23 +89,23 @@ function _backend_instance_from_type(::Type{B}) where B
     Ti = B.parameters[2]
     device_type = B.parameters[3]
 
-    if device_type === HPCLinearAlgebra.DeviceCPU
+    if device_type === HPCSparseArrays.DeviceCPU
         comm_type = B.parameters[4]
-        if comm_type === HPCLinearAlgebra.CommSerial
+        if comm_type === HPCSparseArrays.CommSerial
             return backend_cpu_serial(T, Ti)
         else
             return backend_cpu_mpi(T, Ti)
         end
-    elseif device_type === HPCLinearAlgebra.DeviceCUDA
+    elseif device_type === HPCSparseArrays.DeviceCUDA
         cache_key = (T, Ti, device_type)
         if !haskey(_GPU_BACKEND_CACHE, cache_key)
-            _GPU_BACKEND_CACHE[cache_key] = HPCLinearAlgebra.backend_cuda_mpi(T, Ti)
+            _GPU_BACKEND_CACHE[cache_key] = HPCSparseArrays.backend_cuda_mpi(T, Ti)
         end
         return _GPU_BACKEND_CACHE[cache_key]
-    elseif device_type === HPCLinearAlgebra.DeviceMetal
+    elseif device_type === HPCSparseArrays.DeviceMetal
         cache_key = (T, Ti, device_type)
         if !haskey(_GPU_BACKEND_CACHE, cache_key)
-            _GPU_BACKEND_CACHE[cache_key] = HPCLinearAlgebra.backend_metal_mpi(T, Ti)
+            _GPU_BACKEND_CACHE[cache_key] = HPCSparseArrays.backend_metal_mpi(T, Ti)
         end
         return _GPU_BACKEND_CACHE[cache_key]
     else
@@ -149,7 +149,7 @@ MultiGridBarrier.amgb_diag(A::HPCMatrix{T,B}, z::Vector{T}, m=length(z), n=lengt
 # amgb_blockdiag: Block diagonal concatenation
 MultiGridBarrier.amgb_blockdiag(args::HPCSparseMatrix{T,Ti,AV}...) where {T,Ti,AV} = blockdiag(args...)
 
-# map_rows and map_rows_gpu: Delegate to HPCLinearAlgebra implementations
+# map_rows and map_rows_gpu: Delegate to HPCSparseArrays implementations
 # Use AbstractHPCVector/AbstractHPCMatrix union types for clean dispatch
 
 const AbstractHPCVector = HPCVector
@@ -157,16 +157,16 @@ const AbstractHPCMatrix = Union{HPCMatrix, HPCSparseMatrix}
 const AnyMPI = Union{HPCVector, HPCMatrix, HPCSparseMatrix}
 
 # map_rows: single method that handles all MPI combinations
-# The key insight: if ANY argument is an MPI type, delegate to HPCLinearAlgebra
+# The key insight: if ANY argument is an MPI type, delegate to HPCSparseArrays
 function MultiGridBarrier.map_rows(f, A::AnyMPI, args...)
-    HPCLinearAlgebra.map_rows(f, A, args...)
+    HPCSparseArrays.map_rows(f, A, args...)
 end
 
-# map_rows_gpu: True GPU execution via HPCLinearAlgebra.map_rows_gpu
+# map_rows_gpu: True GPU execution via HPCSparseArrays.map_rows_gpu
 # Barrier functions now receive row data via broadcasting (no scalar indexing)
 # thanks to Q.args being splatted here. This enables true GPU kernel execution.
 function MultiGridBarrier.map_rows_gpu(f, A::AnyMPI, args...)
-    HPCLinearAlgebra.map_rows_gpu(f, A, args...)  # True GPU path
+    HPCSparseArrays.map_rows_gpu(f, A, args...)  # True GPU path
 end
 
 # _raw_array: Extract raw array from MPI wrappers
@@ -188,8 +188,8 @@ MultiGridBarrier._to_cpu_array(x::HPCMatrix) = Array(x.A)
 MultiGridBarrier._to_cpu_array(x::HPCVector) = Array(x.v)
 
 # vertex_indices for MPI types
-MultiGridBarrier.vertex_indices(A::HPCVector) = HPCLinearAlgebra.vertex_indices(A)
-MultiGridBarrier.vertex_indices(A::HPCMatrix) = HPCLinearAlgebra.vertex_indices(A)
+MultiGridBarrier.vertex_indices(A::HPCVector) = HPCSparseArrays.vertex_indices(A)
+MultiGridBarrier.vertex_indices(A::HPCMatrix) = HPCSparseArrays.vertex_indices(A)
 
 # ============================================================================
 # Type Conversion
