@@ -9,13 +9,13 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using HPCMultiGridBarrier
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, _local_rows
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, _local_rows
 using LinearAlgebra
 import Statistics: mean, median
 
-HPCMultiGridBarrier.Init()
+MultiGridBarrierMPI.Init()
 
 const L = 6
 const N_ITER = 100
@@ -25,13 +25,13 @@ println("Comprehension vs Broadcast comparison at L=$L")
 println("="^70)
 
 # Create data
-g_hpc = fem2d_hpc(Float64; L=L)
-x_hpc = g_hpc.x
-w_hpc = g_hpc.w
+g_mpi = fem2d_mpi(Float64; L=L)
+x_mpi = g_mpi.x
+w_mpi = g_mpi.w
 
 # Get local arrays
-x_local = x_hpc.A  # Matrix{Float64}
-w_local = w_hpc.v  # Vector{Float64}
+x_local = x_mpi.A  # Matrix{Float64}
+w_local = w_mpi.v  # Vector{Float64}
 
 n = size(x_local, 1)
 println("Local rows: $n")
@@ -57,8 +57,8 @@ println("   Median: $(round(median(t1_times)/1000, digits=1)) μs")
 # Method 2: MPI-style comprehension with zip and _local_rows iterators
 t2_times = Float64[]
 for _ in 1:N_ITER
-    row_iter_x = _local_rows(x_hpc)
-    row_iter_w = _local_rows(w_hpc)
+    row_iter_x = _local_rows(x_mpi)
+    row_iter_w = _local_rows(w_mpi)
     t = time_ns()
     result = [f(rows...) for rows in zip(row_iter_x, row_iter_w)]
     t = time_ns() - t
@@ -122,8 +122,8 @@ println("\n" * "-"^70)
 println("What does _local_rows return?")
 println("-"^70)
 
-row_iter_x = _local_rows(x_hpc)
-row_iter_w = _local_rows(w_hpc)
+row_iter_x = _local_rows(x_mpi)
+row_iter_w = _local_rows(w_mpi)
 
 println("_local_rows(HPCMatrix) type: ", typeof(row_iter_x))
 println("_local_rows(HPCVector) type: ", typeof(row_iter_w))
@@ -149,8 +149,8 @@ println("Iterate with eachrow + w_local: $(round(median(t_iter1)/1000, digits=1)
 
 t_iter2 = Float64[]
 for _ in 1:N_ITER
-    row_iter_x = _local_rows(x_hpc)
-    row_iter_w = _local_rows(w_hpc)
+    row_iter_x = _local_rows(x_mpi)
+    row_iter_w = _local_rows(w_mpi)
     t = time_ns()
     s = 0.0
     for (rx, rw) in zip(row_iter_x, row_iter_w)

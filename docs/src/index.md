@@ -1,26 +1,26 @@
 ```@meta
-CurrentModule = HPCMultiGridBarrier
+CurrentModule = MultiGridBarrierMPI
 ```
 
 ```@eval
 using Markdown
 using Pkg
-using HPCMultiGridBarrier
-v = string(pkgversion(HPCMultiGridBarrier))
-md"# HPCMultiGridBarrier.jl $v"
+using MultiGridBarrierMPI
+v = string(pkgversion(MultiGridBarrierMPI))
+md"# MultiGridBarrierMPI.jl $v"
 ```
 
-**A Julia package that bridges MultiGridBarrier.jl and HPCSparseArrays.jl for distributed multigrid barrier computations.**
+**A Julia package that bridges MultiGridBarrier.jl and HPCLinearAlgebra.jl for distributed multigrid barrier computations.**
 
 ## Overview
 
-HPCMultiGridBarrier.jl extends the MultiGridBarrier.jl package to work with HPCSparseArrays.jl's distributed matrix and vector types. This enables efficient parallel computation of multigrid barrier methods across multiple MPI ranks using pure Julia distributed types (no PETSc required).
+MultiGridBarrierMPI.jl extends the MultiGridBarrier.jl package to work with HPCLinearAlgebra.jl's distributed matrix and vector types. This enables efficient parallel computation of multigrid barrier methods across multiple MPI ranks using pure Julia distributed types (no PETSc required).
 
 ## Key Features
 
 - **1D, 2D, and 3D Support**: Full support for 1D elements, 2D triangular, and 3D hexahedral finite elements
 - **Seamless Integration**: Drop-in replacement for MultiGridBarrier's native types
-- **Pure Julia MPI**: Uses HPCSparseArrays.jl for distributed linear algebra
+- **Pure Julia MPI**: Uses HPCLinearAlgebra.jl for distributed linear algebra
 - **Type Conversion**: Easy conversion between native Julia arrays and MPI distributed types
 - **MPI-Aware**: All operations correctly handle MPI collective requirements
 - **MUMPS Solver**: Uses MUMPS direct solver for accurate Newton iterations
@@ -33,15 +33,15 @@ Solve a 2D p-Laplace problem with distributed MPI types. Save this code to `exam
 using MPI
 MPI.Init()
 
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using MultiGridBarrier
 
 # Solve with MPI distributed types (L=3 refinement levels)
-sol_hpc = fem2d_hpc_solve(Float64; L=3, p=1.0, verbose=false)
+sol_mpi = fem2d_mpi_solve(Float64; L=3, p=1.0, verbose=false)
 
 # Convert to native types for visualization
-sol_native = hpc_to_native(sol_hpc)
+sol_native = mpi_to_native(sol_mpi)
 
 # Only rank 0 creates the plot
 rank = MPI.Comm_rank(MPI.COMM_WORLD)
@@ -71,7 +71,7 @@ Depth = 2
 This package is part of a larger ecosystem:
 
 - **[MultiGridBarrier.jl](https://github.com/sloisel/MultiGridBarrier.jl)**: Core multigrid barrier method implementation (1D, 2D, and 3D)
-- **[HPCSparseArrays.jl](https://github.com/sloisel/HPCSparseArrays.jl)**: Pure Julia distributed linear algebra with MPI
+- **[HPCLinearAlgebra.jl](https://github.com/sloisel/HPCLinearAlgebra.jl)**: Pure Julia distributed linear algebra with MPI
 - **MPI.jl**: Julia MPI bindings for distributed computing
 
 ## Requirements
@@ -88,9 +88,9 @@ If you use this package in your research, please cite:
 ```bibtex
 @software{multigridbarriermpi,
   author = {Loisel, Sebastien},
-  title = {HPCMultiGridBarrier.jl: Distributed Multigrid Barrier Methods with MPI},
+  title = {MultiGridBarrierMPI.jl: Distributed Multigrid Barrier Methods with MPI},
   year = {2024},
-  url = {https://github.com/sloisel/HPCMultiGridBarrier.jl}
+  url = {https://github.com/sloisel/MultiGridBarrierMPI.jl}
 }
 ```
 

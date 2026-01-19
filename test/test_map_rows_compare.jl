@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,40 +22,40 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] map_rows comparison test (nranks=$nranks)")
 
 # Create geometries
-g_hpc = fem1d_hpc(Float64; L=2)
+g_mpi = fem1d_mpi(Float64; L=2)
 g_native = fem1d(Float64; L=2)
 
-println(io0(), "[DEBUG] MPI geometry x size: $(size(g_hpc.x))")
+println(io0(), "[DEBUG] MPI geometry x size: $(size(g_mpi.x))")
 println(io0(), "[DEBUG] Native geometry x size: $(size(g_native.x))")
 
 # Check coordinates match
-x_hpc_native = Matrix(g_hpc.x)
-x_diff = norm(x_hpc_native - g_native.x)
+x_mpi_native = Matrix(g_mpi.x)
+x_diff = norm(x_mpi_native - g_native.x)
 println(io0(), "[DEBUG] x difference: $x_diff")
 
 # Check weights match
-w_hpc_native = Vector(g_hpc.w)
-w_diff = norm(w_hpc_native - g_native.w)
+w_mpi_native = Vector(g_mpi.w)
+w_diff = norm(w_mpi_native - g_native.w)
 println(io0(), "[DEBUG] w difference: $w_diff")
 
 # Get operators
-D_mpi = [g_hpc.operators[:dx], g_hpc.operators[:id]]
+D_mpi = [g_mpi.operators[:dx], g_mpi.operators[:id]]
 D_native = [g_native.operators[:dx], g_native.operators[:id]]
 
 # Create a test solution
-n = length(g_hpc.w)
+n = length(g_mpi.w)
 z_native = sin.(range(0, π, length=n))
-z_hpc = HPCVector(z_native)
+z_mpi = HPCVector(z_native)
 
 # Compute Dz
-Dz_hpc = hcat([D * z_hpc for D in D_mpi]...)
+Dz_mpi = hcat([D * z_mpi for D in D_mpi]...)
 Dz_native = hcat([D * z_native for D in D_native]...)
 
-println(io0(), "[DEBUG] Dz_hpc size: $(size(Dz_hpc))")
+println(io0(), "[DEBUG] Dz_mpi size: $(size(Dz_mpi))")
 println(io0(), "[DEBUG] Dz_native size: $(size(Dz_native))")
 
-Dz_hpc_native = Matrix(Dz_hpc)
-Dz_diff = norm(Dz_hpc_native - Dz_native)
+Dz_mpi_native = Matrix(Dz_mpi)
+Dz_diff = norm(Dz_mpi_native - Dz_native)
 println(io0(), "[DEBUG] Dz difference: $Dz_diff")
 
 # Create test function (simplified version of F2)
@@ -70,7 +70,7 @@ end
 
 # Apply map_rows
 println(io0(), "[DEBUG] Testing map_rows...")
-y_mpi = MultiGridBarrier.map_rows((xi, qi) -> F2_test(xi, qi)[:]', g_hpc.x, Dz_hpc)
+y_mpi = MultiGridBarrier.map_rows((xi, qi) -> F2_test(xi, qi)[:]', g_mpi.x, Dz_mpi)
 y_native = MultiGridBarrier.map_rows((xi, qi) -> F2_test(xi, qi)[:]', g_native.x, Dz_native)
 
 println(io0(), "[DEBUG] y_mpi size: $(size(y_mpi))")
@@ -102,14 +102,14 @@ end
 # Now build the Hessian using the same method as f2
 println(io0(), "[DEBUG] Building Hessian from map_rows output...")
 
-w_hpc = g_hpc.w
+w_mpi = g_mpi.w
 w_native = g_native.w
 n_ops = length(D_mpi)
 
 # MPI version
 local H_mpi
 for j in 1:n_ops
-    foo = MultiGridBarrier.amgb_diag(D_mpi[1], w_hpc .* y_mpi[:, (j-1)*n_ops + j])
+    foo = MultiGridBarrier.amgb_diag(D_mpi[1], w_mpi .* y_mpi[:, (j-1)*n_ops + j])
     bar = D_mpi[j]' * foo * D_mpi[j]
     if j > 1
         global H_mpi = H_mpi + bar
@@ -117,7 +117,7 @@ for j in 1:n_ops
         global H_mpi = bar
     end
     for k in 1:j-1
-        foo = MultiGridBarrier.amgb_diag(D_mpi[1], w_hpc .* y_mpi[:, (j-1)*n_ops + k])
+        foo = MultiGridBarrier.amgb_diag(D_mpi[1], w_mpi .* y_mpi[:, (j-1)*n_ops + k])
         global H_mpi = H_mpi + D_mpi[j]' * foo * D_mpi[k] + D_mpi[k]' * foo * D_mpi[j]
     end
 end
@@ -162,7 +162,7 @@ if rank == 0
 end
 
 # Now apply restriction
-R_mpi = g_hpc.subspaces[:dirichlet][end]
+R_mpi = g_mpi.subspaces[:dirichlet][end]
 R_native = g_native.subspaces[:dirichlet][end]
 
 println(io0(), "[DEBUG] R_mpi size: $(size(R_mpi))")

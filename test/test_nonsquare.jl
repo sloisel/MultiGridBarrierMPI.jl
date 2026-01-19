@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,7 +22,7 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Testing non-square matrix operations")
 
 # Create geometry
-g = fem1d_hpc(Float64; L=3)
+g = fem1d_mpi(Float64; L=3)
 
 # Get restriction matrix (not square)
 R = g.subspaces[:dirichlet][3]  # Finest level, 16x7
@@ -33,21 +33,21 @@ println(io0(), "[DEBUG] R col_partition: $(R.col_partition)")
 
 # Create a vector of size 7 (ncols of R)
 z_native = collect(Float64, 1:7)
-z_hpc = HPCVector(z_native)
+z_mpi = HPCVector(z_native)
 
-println(io0(), "[DEBUG] z size: $(length(z_hpc))")
-println(io0(), "[DEBUG] z partition: $(z_hpc.partition)")
+println(io0(), "[DEBUG] z size: $(length(z_mpi))")
+println(io0(), "[DEBUG] z partition: $(z_mpi.partition)")
 
 # Test R * z
 println(io0(), "[DEBUG] Computing R * z...")
-Rz_hpc = R * z_hpc
-Rz_native = Vector(Rz_hpc)
+Rz_mpi = R * z_mpi
+Rz_native = Vector(Rz_mpi)
 
 R_native = SparseMatrixCSC(R)
 Rz_expected = R_native * z_native
 
-println(io0(), "[DEBUG] R*z size: $(length(Rz_hpc))")
-println(io0(), "[DEBUG] R*z partition: $(Rz_hpc.partition)")
+println(io0(), "[DEBUG] R*z size: $(length(Rz_mpi))")
+println(io0(), "[DEBUG] R*z partition: $(Rz_mpi.partition)")
 println(io0(), "[DEBUG] R*z expected: $Rz_expected")
 println(io0(), "[DEBUG] R*z got: $Rz_native")
 println(io0(), "[DEBUG] R*z match: $(Rz_native ≈ Rz_expected)")

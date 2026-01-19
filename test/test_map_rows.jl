@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, io0
 using LinearAlgebra
 using MultiGridBarrier
 
@@ -45,9 +45,9 @@ end
 
 # Test 2: Function on two HPCVectors
 w_native = collect(Float64, n:-1:1)
-w_hpc = HPCVector(w_native)
+w_mpi = HPCVector(w_native)
 
-result2_mpi = MultiGridBarrier.map_rows((x, y) -> x[1] * y[1], v_mpi, w_hpc)
+result2_mpi = MultiGridBarrier.map_rows((x, y) -> x[1] * y[1], v_mpi, w_mpi)
 result2_native = Vector(result2_mpi)
 expected2 = v_native .* w_native
 

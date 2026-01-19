@@ -10,8 +10,8 @@ rank = MPI.Comm_rank(MPI.COMM_WORLD)
 io0(args...) = rank == 0 && println(args...)
 
 io0("Loading packages...")
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 using SparseArrays
 
@@ -21,7 +21,7 @@ io0("\n" * "="^70)
 io0("Hash computation overhead at L=$L")
 io0("="^70)
 
-g = fem2d_hpc(Float64; L=L)
+g = fem2d_mpi(Float64; L=L)
 n = size(g.x, 1)
 io0("  n = $n")
 

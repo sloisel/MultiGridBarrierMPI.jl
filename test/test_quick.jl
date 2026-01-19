@@ -11,12 +11,12 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-# Use HPCMultiGridBarrier initializer
-using HPCMultiGridBarrier
+# Use MultiGridBarrierMPI initializer
+using MultiGridBarrierMPI
 
 # Now load dependencies for tests
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -49,11 +49,11 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS_1D
 
     # Test 1: Create 1D geometry with MPI types
     if rank == 0
-        println("[DEBUG] Test 1: fem1d_hpc geometry creation ($backend_name)")
+        println("[DEBUG] Test 1: fem1d_mpi geometry creation ($backend_name)")
         flush(stdout)
     end
 
-    g = fem1d_hpc(T; L=3, backend=backend)
+    g = fem1d_mpi(T; L=3, backend=backend)
     @test g isa MultiGridBarrier.Geometry
     @test g.x isa HPCMatrix
     @test g.w isa HPCVector
@@ -68,11 +68,11 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS_1D
 
     # Test 2: Convert back to native and verify
     if rank == 0
-        println("[DEBUG] Test 2: hpc_to_native conversion ($backend_name)")
+        println("[DEBUG] Test 2: mpi_to_native conversion ($backend_name)")
         flush(stdout)
     end
 
-    g_native = hpc_to_native(g)
+    g_native = mpi_to_native(g)
     @test g_native.x isa Matrix
     @test g_native.w isa Vector
     @test g_native.operators[:id] isa SparseMatrixCSC
@@ -100,7 +100,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS_1D
 
     # Test 4: Solve a simple 1D problem
     if rank == 0
-        println("[DEBUG] Test 4: fem1d_hpc geometry + amgb solve ($backend_name)")
+        println("[DEBUG] Test 4: fem1d_mpi geometry + amgb solve ($backend_name)")
         flush(stdout)
     end
 
@@ -119,7 +119,7 @@ for (T, backend, backend_name) in TestUtils.ALL_CONFIGS_1D
         flush(stdout)
     end
 
-    sol_native = hpc_to_native(sol)
+    sol_native = mpi_to_native(sol)
     @test sol_native.z isa Matrix
     @test sol_native.geometry.x isa Matrix
 

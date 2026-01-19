@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,16 +22,16 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] D0 matrix construction test (nranks=$nranks)")
 
 # Create geometry
-g_hpc = fem1d_hpc(Float64; L=2)
+g_mpi = fem1d_mpi(Float64; L=2)
 g_native = fem1d(Float64; L=2)
 
 # Get operators and subspaces
-D_dx_hpc = g_hpc.operators[:dx]
-D_id_mpi = g_hpc.operators[:id]
+D_dx_mpi = g_mpi.operators[:dx]
+D_id_mpi = g_mpi.operators[:id]
 D_dx_native = g_native.operators[:dx]
 D_id_native = g_native.operators[:id]
 
-n = size(D_dx_hpc, 1)
+n = size(D_dx_mpi, 1)
 
 # Test hcat of sparse matrices
 println(io0(), "[DEBUG] Testing hcat of sparse matrices...")
@@ -41,7 +41,7 @@ Z_mpi = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 Z_native = spzeros(Float64, n, n)
 
 # Test 1: hcat(Z, D_dx) - like foo = [Z; D_dx] in amg_helper
-D0_1_mpi = hcat(Z_mpi, D_dx_hpc)
+D0_1_mpi = hcat(Z_mpi, D_dx_mpi)
 D0_1_native = hcat(Z_native, D_dx_native)
 
 println(io0(), "[DEBUG] hcat(Z, D_dx) size: MPI=$(size(D0_1_mpi)), native=$(size(D0_1_native))")
@@ -55,7 +55,7 @@ if rank == 0
 end
 
 # Test 2: hcat(D_dx, Z) - operator in first position
-D0_2_mpi = hcat(D_dx_hpc, Z_mpi)
+D0_2_mpi = hcat(D_dx_mpi, Z_mpi)
 D0_2_native = hcat(D_dx_native, Z_native)
 
 D0_2_mpi_native = SparseMatrixCSC(D0_2_mpi)
@@ -69,13 +69,13 @@ end
 # Test 3: Test blockdiag for restriction matrices
 println(io0(), "[DEBUG] Testing blockdiag...")
 
-w_hpc = g_hpc.w
+w_mpi = g_mpi.w
 w_native = g_native.w
 
 # Test 4: Now with restriction matrices (like the full Newton system)
 println(io0(), "[DEBUG] Testing with restriction matrices...")
 
-R_mpi = g_hpc.subspaces[:dirichlet][end]
+R_mpi = g_mpi.subspaces[:dirichlet][end]
 R_native = g_native.subspaces[:dirichlet][end]
 
 # Build block diagonal restriction: R_block = [R 0; 0 R]
@@ -86,7 +86,7 @@ println(io0(), "[DEBUG] R_block size: MPI=$(size(R_block_mpi)), native=$(size(R_
 
 # Build wide D0 that acts on the blocked state
 # D0 takes [u; s] and produces [dx(u), id(s)]
-D0_wide_mpi = hcat(hcat(D_dx_hpc, Z_mpi), hcat(Z_mpi, D_id_mpi))  # This isn't quite right...
+D0_wide_mpi = hcat(hcat(D_dx_mpi, Z_mpi), hcat(Z_mpi, D_id_mpi))  # This isn't quite right...
 
 # Actually, let me reconsider the structure.
 # In amg_helper:
@@ -94,12 +94,12 @@ D0_wide_mpi = hcat(hcat(D_dx_hpc, Z_mpi), hcat(Z_mpi, D_id_mpi))  # This isn't q
 # For k=1 (dx applied to u): foo = [D_dx, Z]
 # For k=2 (id applied to s): foo = [Z, D_id]
 
-D0_dx_hpc = hcat(D_dx_hpc, Z_mpi)  # dx applied to first state variable
+D0_dx_mpi = hcat(D_dx_mpi, Z_mpi)  # dx applied to first state variable
 D0_id_mpi = hcat(Z_mpi, D_id_mpi)   # id applied to second state variable
 D0_dx_native = hcat(D_dx_native, Z_native)
 D0_id_native = hcat(Z_native, D_id_native)
 
-println(io0(), "[DEBUG] D0_dx size: $(size(D0_dx_hpc)), D0_id size: $(size(D0_id_mpi))")
+println(io0(), "[DEBUG] D0_dx size: $(size(D0_dx_mpi)), D0_id size: $(size(D0_id_mpi))")
 
 # Now build Hessian: sum over (j,k) of D[j]'*diag(w*y[j,k])*D[k]
 # For the 2-operator case (dx, id):
@@ -113,16 +113,16 @@ y22 = ones(n) * 0.3
 # MPI version
 H_mpi = nothing
 # j=1: dx'*diag(w*y11)*dx
-foo = spdiagm(n, n, 0 => w_hpc .* HPCVector(y11))
-H_mpi = D0_dx_hpc' * foo * D0_dx_hpc
+foo = spdiagm(n, n, 0 => w_mpi .* HPCVector(y11))
+H_mpi = D0_dx_mpi' * foo * D0_dx_mpi
 
 # j=2: id'*diag(w*y22)*id
-foo = spdiagm(n, n, 0 => w_hpc .* HPCVector(y22))
+foo = spdiagm(n, n, 0 => w_mpi .* HPCVector(y22))
 H_mpi = H_mpi + D0_id_mpi' * foo * D0_id_mpi
 
 # Cross term: dx'*diag(w*y12)*id + id'*diag(w*y12)*dx
-foo = spdiagm(n, n, 0 => w_hpc .* HPCVector(y12))
-H_mpi = H_mpi + D0_dx_hpc' * foo * D0_id_mpi + D0_id_mpi' * foo * D0_dx_hpc
+foo = spdiagm(n, n, 0 => w_mpi .* HPCVector(y12))
+H_mpi = H_mpi + D0_dx_mpi' * foo * D0_id_mpi + D0_id_mpi' * foo * D0_dx_mpi
 
 # Native version
 foo_native = spdiagm(n, n, 0 => w_native .* y11)

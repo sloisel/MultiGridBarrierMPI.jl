@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,7 +22,7 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Testing Hessian assembly (nranks=$nranks)")
 
 # Create geometry at L=2 (simplest case)
-g = fem1d_hpc(Float64; L=2)
+g = fem1d_mpi(Float64; L=2)
 
 println(io0(), "[DEBUG] Geometry created")
 println(io0(), "[DEBUG] x size: $(size(g.x))")

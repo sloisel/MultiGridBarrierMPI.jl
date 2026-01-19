@@ -11,8 +11,8 @@ io0(args...) = rank == 0 && println(args...)
 
 io0("Loading packages...")
 using MultiGridBarrier
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 using SparseArrays
 using Printf
@@ -25,16 +25,16 @@ io0("="^70)
 
 # Create geometries
 io0("\nCreating geometries...")
-g_hpc = fem2d_hpc(Float64; L=L)
+g_mpi = fem2d_mpi(Float64; L=L)
 g_native = rank == 0 ? fem2d(Float64; L=L) : nothing
 
-n = size(g_hpc.x, 1)
+n = size(g_mpi.x, 1)
 io0("  n = $n")
 
 # Get some operators
-Dx_hpc = g_hpc.operators[:dx]
-Dy_mpi = g_hpc.operators[:dy]
-Id_mpi = g_hpc.operators[:id]
+Dx_mpi = g_mpi.operators[:dx]
+Dy_mpi = g_mpi.operators[:dy]
+Id_mpi = g_mpi.operators[:id]
 
 if rank == 0
     Dx_native = g_native.operators[:dx]
@@ -48,10 +48,10 @@ io0("\n--- Sparse Matrix Operations ---")
 # Transpose multiply: Dx' * Dy
 io0("\nDx' * Dy (10 times each):")
 for _ in 1:3  # warmup
-    _ = Dx_hpc' * Dy_mpi
+    _ = Dx_mpi' * Dy_mpi
 end
 t_mpi = @elapsed for _ in 1:10
-    _ = Dx_hpc' * Dy_mpi
+    _ = Dx_mpi' * Dy_mpi
 end
 io0("  MPI:    $(round(t_mpi/10*1000, digits=2)) ms per op")
 
@@ -68,14 +68,14 @@ end
 
 # map_rows timing
 io0("\nmap_rows (barrier Hessian-like, 10 times each):")
-x_hpc = g_hpc.x
+x_mpi = g_mpi.x
 f_hess = x -> [sum(x.^2), prod(x)]'
 
 for _ in 1:3
-    _ = HPCSparseArrays.map_rows(f_hess, x_hpc)
+    _ = HPCLinearAlgebra.map_rows(f_hess, x_mpi)
 end
 t_mpi = @elapsed for _ in 1:10
-    _ = HPCSparseArrays.map_rows(f_hess, x_hpc)
+    _ = HPCLinearAlgebra.map_rows(f_hess, x_mpi)
 end
 io0("  MPI:    $(round(t_mpi/10*1000, digits=2)) ms per op")
 
@@ -94,10 +94,10 @@ end
 # Stiffness-like matrix: Dx' * Dx + Dy' * Dy
 io0("\nDx'*Dx + Dy'*Dy (stiffness-like, 10 times each):")
 for _ in 1:3
-    _ = Dx_hpc' * Dx_hpc + Dy_mpi' * Dy_mpi
+    _ = Dx_mpi' * Dx_mpi + Dy_mpi' * Dy_mpi
 end
 t_mpi = @elapsed for _ in 1:10
-    _ = Dx_hpc' * Dx_hpc + Dy_mpi' * Dy_mpi
+    _ = Dx_mpi' * Dx_mpi + Dy_mpi' * Dy_mpi
 end
 io0("  MPI:    $(round(t_mpi/10*1000, digits=2)) ms per op")
 
@@ -114,7 +114,7 @@ end
 
 # Linear solve timing with stiffness matrix
 io0("\nLinear solve with stiffness (3 times each):")
-K_mpi = Dx_hpc' * Dx_hpc + Dy_mpi' * Dy_mpi + 0.01 * Id_mpi
+K_mpi = Dx_mpi' * Dx_mpi + Dy_mpi' * Dy_mpi + 0.01 * Id_mpi
 b_mpi = HPCVector(randn(n))
 
 for _ in 1:2

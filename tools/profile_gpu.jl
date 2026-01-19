@@ -8,25 +8,25 @@ MPI.Init()
 
 println("Loading packages...")
 using Metal
-using HPCMultiGridBarrier
+using MultiGridBarrierMPI
 using MultiGridBarrier
-using HPCSparseArrays
+using HPCLinearAlgebra
 using Profile
 
 L = 6
 
 println("\n" * "="^70)
-println("Profiling fem2d_hpc_solve GPU at L=$L")
+println("Profiling fem2d_mpi_solve GPU at L=$L")
 println("="^70)
 
 # Warmup run
 println("\nWarmup...")
-fem2d_hpc_solve(Float32; L=L, backend=HPCSparseArrays.mtl, verbose=false)
+fem2d_mpi_solve(Float32; L=L, backend=HPCLinearAlgebra.mtl, verbose=false)
 
 # Profile
 println("\nProfiling...")
 Profile.clear()
-@profile fem2d_hpc_solve(Float32; L=L, backend=HPCSparseArrays.mtl, verbose=false)
+@profile fem2d_mpi_solve(Float32; L=L, backend=HPCLinearAlgebra.mtl, verbose=false)
 
 println("\n" * "="^70)
 println("Profile results (flat, top 40)")

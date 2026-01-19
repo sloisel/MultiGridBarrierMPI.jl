@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# Benchmark: CPU vs GPU for fem2d_hpc_solve
+# Benchmark: CPU vs GPU for fem2d_mpi_solve
 #
 # Run with:
 #   mpiexec -n 1 julia --project=. tools/benchmark_cpu_vs_gpu.jl
@@ -16,14 +16,14 @@ rank = MPI.Comm_rank(comm)
 
 println("Loading packages...")
 using Metal
-using HPCMultiGridBarrier
+using MultiGridBarrierMPI
 using MultiGridBarrier
-using HPCSparseArrays
+using HPCLinearAlgebra
 using BenchmarkTools
 using Printf
 
 println("\n" * "="^70)
-println("Benchmark: fem2d_hpc_solve - CPU vs GPU")
+println("Benchmark: fem2d_mpi_solve - CPU vs GPU")
 println("  MPI ranks: $(MPI.Comm_size(comm))")
 println("  Element type: Float32 (Metal requirement)")
 println("  Running L = 1:7")
@@ -41,14 +41,14 @@ for L in 1:7
 
     # Benchmark CPU
     println("  Benchmarking CPU...")
-    HPCSparseArrays.clear_plan_cache!()
-    b_cpu = @benchmark fem2d_hpc_solve(Float32; L=$L, verbose=false) samples=1 evals=1
+    HPCLinearAlgebra.clear_plan_cache!()
+    b_cpu = @benchmark fem2d_mpi_solve(Float32; L=$L, verbose=false) samples=1 evals=1
     cpu_time = median(b_cpu.times) / 1e9
 
     # Benchmark GPU
     println("  Benchmarking GPU...")
-    HPCSparseArrays.clear_plan_cache!()
-    b_gpu = @benchmark fem2d_hpc_solve(Float32; L=$L, backend=HPCSparseArrays.mtl, verbose=false) samples=1 evals=1
+    HPCLinearAlgebra.clear_plan_cache!()
+    b_gpu = @benchmark fem2d_mpi_solve(Float32; L=$L, backend=HPCLinearAlgebra.mtl, verbose=false) samples=1 evals=1
     gpu_time = median(b_gpu.times) / 1e9
 
     push!(results, (L=L, n=n, cpu=cpu_time, gpu=gpu_time))

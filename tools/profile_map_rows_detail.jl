@@ -9,12 +9,12 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using HPCMultiGridBarrier
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, _get_row_partition, _align_to_partition, _local_rows
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, _get_row_partition, _align_to_partition, _local_rows
 using LinearAlgebra
 
-HPCMultiGridBarrier.Init()
+MultiGridBarrierMPI.Init()
 
 const L = 6
 println("="^70)
@@ -22,18 +22,18 @@ println("Detailed map_rows profile at L=$L")
 println("="^70)
 
 # Create geometry
-g_hpc = fem2d_hpc(Float64; L=L)
-x_hpc = g_hpc.x  # HPCMatrix
-w_hpc = g_hpc.w  # HPCVector
+g_mpi = fem2d_mpi(Float64; L=L)
+x_mpi = g_mpi.x  # HPCMatrix
+w_mpi = g_mpi.w  # HPCVector
 
-println("Grid size (global): ", sum(x_hpc.row_partition))
-println("Local rows: ", size(x_hpc.A, 1))
+println("Grid size (global): ", sum(x_mpi.row_partition))
+println("Local rows: ", size(x_mpi.A, 1))
 
 # Check partitions
 println("\n--- Partition Check ---")
-println("x_hpc row_partition: ", x_hpc.row_partition)
-println("w_hpc partition: ", w_hpc.partition)
-println("Partitions equal: ", x_hpc.row_partition == w_hpc.partition)
+println("x_mpi row_partition: ", x_mpi.row_partition)
+println("w_mpi partition: ", w_mpi.partition)
+println("Partitions equal: ", x_mpi.row_partition == w_mpi.partition)
 
 # Breakdown timing
 f = (row_x, w) -> w * sum(row_x)
@@ -43,30 +43,30 @@ println("\n--- Timing Breakdown ---")
 # 1. Get target partition
 t1 = time()
 for _ in 1:1000
-    target_partition = _get_row_partition(x_hpc)
+    target_partition = _get_row_partition(x_mpi)
 end
 t1 = (time() - t1) / 1000
 println("1. _get_row_partition: $(round(t1*1e6, digits=3)) μs")
 
-target_partition = _get_row_partition(x_hpc)
+target_partition = _get_row_partition(x_mpi)
 
 # 2. Align arguments
 t2a = time()
 for _ in 1:1000
-    aligned_x = _align_to_partition(x_hpc, target_partition)
+    aligned_x = _align_to_partition(x_mpi, target_partition)
 end
 t2a = (time() - t2a) / 1000
-println("2a. _align_to_partition(x_hpc): $(round(t2a*1e6, digits=3)) μs")
+println("2a. _align_to_partition(x_mpi): $(round(t2a*1e6, digits=3)) μs")
 
 t2b = time()
 for _ in 1:1000
-    aligned_w = _align_to_partition(w_hpc, target_partition)
+    aligned_w = _align_to_partition(w_mpi, target_partition)
 end
 t2b = (time() - t2b) / 1000
-println("2b. _align_to_partition(w_hpc): $(round(t2b*1e6, digits=3)) μs")
+println("2b. _align_to_partition(w_mpi): $(round(t2b*1e6, digits=3)) μs")
 
-aligned_x = _align_to_partition(x_hpc, target_partition)
-aligned_w = _align_to_partition(w_hpc, target_partition)
+aligned_x = _align_to_partition(x_mpi, target_partition)
+aligned_w = _align_to_partition(w_mpi, target_partition)
 
 # 3. Get local row iterators
 t3a = time()
@@ -74,14 +74,14 @@ for _ in 1:1000
     row_iter_x = _local_rows(aligned_x)
 end
 t3a = (time() - t3a) / 1000
-println("3a. _local_rows(x_hpc): $(round(t3a*1e6, digits=3)) μs")
+println("3a. _local_rows(x_mpi): $(round(t3a*1e6, digits=3)) μs")
 
 t3b = time()
 for _ in 1:1000
     row_iter_w = _local_rows(aligned_w)
 end
 t3b = (time() - t3b) / 1000
-println("3b. _local_rows(w_hpc): $(round(t3b*1e6, digits=3)) μs")
+println("3b. _local_rows(w_mpi): $(round(t3b*1e6, digits=3)) μs")
 
 row_iter_x = _local_rows(aligned_x)
 row_iter_w = _local_rows(aligned_w)
@@ -106,14 +106,14 @@ println("5. MPI.Allgather (small): $(round(t5*1e6, digits=3)) μs")
 # 6. Full map_rows call
 t6 = time()
 for _ in 1:100
-    result = MultiGridBarrier.map_rows(f, x_hpc, w_hpc)
+    result = MultiGridBarrier.map_rows(f, x_mpi, w_mpi)
 end
 t6 = (time() - t6) / 100
 println("\n6. Full map_rows: $(round(t6*1e3, digits=3)) ms")
 
 # Compare with native
-x_native = g_hpc.x.A  # Get local part as native
-w_native = g_hpc.w.v  # Get local part as native
+x_native = g_mpi.x.A  # Get local part as native
+w_native = g_mpi.w.v  # Get local part as native
 
 t_native = time()
 for _ in 1:100
@@ -130,8 +130,8 @@ println("\n--- Actual barrier function pattern ---")
 # map_rows((Dz_row, w) -> ..., Dz, w)
 # where Dz is a HPCMatrix and w is a HPCVector
 
-Dz = x_hpc  # Use x_hpc as a stand-in for Dz
-w = w_hpc
+Dz = x_mpi  # Use x_mpi as a stand-in for Dz
+w = w_mpi
 
 barrier_f = (Dz_row, w) -> begin
     s = norm(Dz_row)^2

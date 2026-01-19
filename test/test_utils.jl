@@ -6,7 +6,7 @@ module TestUtils
 using SparseArrays
 using MPI
 
-# Detect Metal availability BEFORE loading HPCSparseArrays
+# Detect Metal availability BEFORE loading HPCLinearAlgebra
 # (Metal must be loaded first for GPU detection to work)
 const METAL_AVAILABLE = try
     using Metal
@@ -19,7 +19,7 @@ if METAL_AVAILABLE
     @info "Metal is available for GPU tests"
 end
 
-# Detect CUDA availability BEFORE loading HPCSparseArrays
+# Detect CUDA availability BEFORE loading HPCLinearAlgebra
 # (CUDA must be loaded first for GPU detection to work)
 const CUDA_AVAILABLE = try
     using CUDA, NCCL, CUDSS_jll
@@ -32,10 +32,10 @@ if CUDA_AVAILABLE
     @info "CUDA is available for GPU tests"
 end
 
-# Import HPCSparseArrays after GPU checks - this triggers extension loading
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix
-using HPCSparseArrays: BACKEND_CPU_MPI, HPCBackend, to_backend
+# Import HPCLinearAlgebra after GPU checks - this triggers extension loading
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix
+using HPCLinearAlgebra: BACKEND_CPU_MPI, HPCBackend, to_backend
 
 # Backend configurations: (ScalarType, backend_instance, backend_name)
 # Tests should use: HPCSparseMatrix(sparse_matrix, backend) etc.
@@ -51,14 +51,14 @@ const _CUDA_BACKEND = Ref{Union{Nothing, HPCBackend}}(nothing)
 
 function _get_metal_backend()
     if _METAL_BACKEND[] === nothing && METAL_AVAILABLE
-        _METAL_BACKEND[] = HPCSparseArrays.backend_metal_mpi(MPI.COMM_WORLD)
+        _METAL_BACKEND[] = HPCLinearAlgebra.backend_metal_mpi(MPI.COMM_WORLD)
     end
     return _METAL_BACKEND[]
 end
 
 function _get_cuda_backend()
     if _CUDA_BACKEND[] === nothing && CUDA_AVAILABLE
-        _CUDA_BACKEND[] = HPCSparseArrays.backend_cuda_mpi(MPI.COMM_WORLD)
+        _CUDA_BACKEND[] = HPCLinearAlgebra.backend_cuda_mpi(MPI.COMM_WORLD)
     end
     return _CUDA_BACKEND[]
 end
@@ -128,7 +128,7 @@ to_cpu(x) = x
 
 # For HPC types: check if already CPU backend, otherwise convert
 function to_cpu(x::HPCVector{T,B}) where {T, B<:HPCBackend}
-    if B.parameters[1] === HPCSparseArrays.DeviceCPU
+    if B.parameters[1] === HPCLinearAlgebra.DeviceCPU
         return x
     else
         return to_backend(x, BACKEND_CPU_MPI)
@@ -136,7 +136,7 @@ function to_cpu(x::HPCVector{T,B}) where {T, B<:HPCBackend}
 end
 
 function to_cpu(x::HPCMatrix{T,B}) where {T, B<:HPCBackend}
-    if B.parameters[1] === HPCSparseArrays.DeviceCPU
+    if B.parameters[1] === HPCLinearAlgebra.DeviceCPU
         return x
     else
         return to_backend(x, BACKEND_CPU_MPI)
@@ -144,7 +144,7 @@ function to_cpu(x::HPCMatrix{T,B}) where {T, B<:HPCBackend}
 end
 
 function to_cpu(x::HPCSparseMatrix{T,Ti,B}) where {T, Ti, B<:HPCBackend}
-    if B.parameters[1] === HPCSparseArrays.DeviceCPU
+    if B.parameters[1] === HPCLinearAlgebra.DeviceCPU
         return x
     else
         return to_backend(x, BACKEND_CPU_MPI)

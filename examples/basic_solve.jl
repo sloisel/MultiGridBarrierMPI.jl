@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# Basic Solve Example for HPCMultiGridBarrier.jl
+# Basic Solve Example for MultiGridBarrierMPI.jl
 #
 # This example demonstrates the simplest workflow:
 # 1. Initialize MPI
@@ -14,13 +14,13 @@
 using MPI
 MPI.Init()
 
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using MultiGridBarrier
 using LinearAlgebra
 
 println(io0(), "="^70)
-println(io0(), "Basic Solve Example - HPCMultiGridBarrier.jl")
+println(io0(), "Basic Solve Example - MultiGridBarrierMPI.jl")
 println(io0(), "="^70)
 
 # Get MPI information
@@ -39,11 +39,11 @@ println(io0(), "")
 
 # Solve with MPI distributed types (collective operation)
 println(io0(), "Solving with MPI distributed types...")
-sol_hpc = fem2d_hpc_solve(Float64; L=L, p=p, verbose=true)
+sol_mpi = fem2d_mpi_solve(Float64; L=L, p=p, verbose=true)
 
 # Convert solution to native Julia types (collective operation)
 println(io0(), "\nConverting solution to native types...")
-sol_native = hpc_to_native(sol_hpc)
+sol_native = mpi_to_native(sol_mpi)
 
 # Display results (only on rank 0)
 println(io0(), "")

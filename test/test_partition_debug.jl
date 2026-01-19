@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,34 +22,34 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Partition debugging test (nranks=$nranks)")
 
 # Create geometry
-g_hpc = fem1d_hpc(Float64; L=2)
+g_mpi = fem1d_mpi(Float64; L=2)
 g_native = fem1d(Float64; L=2)
 
-n = length(g_hpc.w)
+n = length(g_mpi.w)
 
 # Get operators
-D_dx_hpc = g_hpc.operators[:dx]
+D_dx_mpi = g_mpi.operators[:dx]
 Z_mpi = HPCSparseMatrix{Float64}(spzeros(Float64, n, n))
 
 # Create wide operator: D0_dx = [D_dx | Z] (8 x 16)
-D0_dx_hpc = hcat(D_dx_hpc, Z_mpi)
+D0_dx_mpi = hcat(D_dx_mpi, Z_mpi)
 
 println(io0(), "[DEBUG] D_dx partitions:")
-println(io0(), "[DEBUG]   D_dx row_partition: $(D_dx_hpc.row_partition)")
-println(io0(), "[DEBUG]   D_dx col_partition: $(D_dx_hpc.col_partition)")
+println(io0(), "[DEBUG]   D_dx row_partition: $(D_dx_mpi.row_partition)")
+println(io0(), "[DEBUG]   D_dx col_partition: $(D_dx_mpi.col_partition)")
 
 println(io0(), "[DEBUG] Z partitions:")
 println(io0(), "[DEBUG]   Z row_partition: $(Z_mpi.row_partition)")
 println(io0(), "[DEBUG]   Z col_partition: $(Z_mpi.col_partition)")
 
 println(io0(), "[DEBUG] D0_dx partitions (after hcat):")
-println(io0(), "[DEBUG]   D0_dx row_partition: $(D0_dx_hpc.row_partition)")
-println(io0(), "[DEBUG]   D0_dx col_partition: $(D0_dx_hpc.col_partition)")
-println(io0(), "[DEBUG]   D0_dx size: $(size(D0_dx_hpc))")
+println(io0(), "[DEBUG]   D0_dx row_partition: $(D0_dx_mpi.row_partition)")
+println(io0(), "[DEBUG]   D0_dx col_partition: $(D0_dx_mpi.col_partition)")
+println(io0(), "[DEBUG]   D0_dx size: $(size(D0_dx_mpi))")
 
 # Check the transpose
 println(io0(), "[DEBUG] Checking transpose D0_dx'...")
-D0_dx_t = D0_dx_hpc'
+D0_dx_t = D0_dx_mpi'
 
 # Is it lazy or materialized?
 println(io0(), "[DEBUG]   typeof(D0_dx'): $(typeof(D0_dx_t))")
@@ -63,11 +63,11 @@ if D0_dx_t isa LinearAlgebra.Adjoint
 end
 
 # Create diagonal weight matrix
-w_hpc = g_hpc.w
+w_mpi = g_mpi.w
 w_native = g_native.w
 
 y11 = ones(n) * 0.5
-foo_mpi = spdiagm(n, n, 0 => w_hpc .* HPCVector(y11))
+foo_mpi = spdiagm(n, n, 0 => w_mpi .* HPCVector(y11))
 foo_native = spdiagm(n, n, 0 => w_native .* y11)
 
 println(io0(), "[DEBUG] foo (diagonal) partitions:")
@@ -113,7 +113,7 @@ end
 
 # Now compute tmp * D0_dx = D0_dx' * foo * D0_dx
 println(io0(), "[DEBUG] Computing tmp * D0_dx...")
-result_mpi = tmp_mpi * D0_dx_hpc
+result_mpi = tmp_mpi * D0_dx_mpi
 
 println(io0(), "[DEBUG] result = D0_dx' * foo * D0_dx:")
 println(io0(), "[DEBUG]   result size: $(size(result_mpi))")

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# Round-Trip Conversion Example for HPCMultiGridBarrier.jl
+# Round-Trip Conversion Example for MultiGridBarrierMPI.jl
 #
 # This example demonstrates:
 # 1. Creating a native geometry
@@ -15,14 +15,14 @@
 using MPI
 MPI.Init()
 
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using MultiGridBarrier
 using LinearAlgebra
 using SparseArrays
 
 println(io0(), "="^70)
-println(io0(), "Round-Trip Conversion Example - HPCMultiGridBarrier.jl")
+println(io0(), "Round-Trip Conversion Example - MultiGridBarrierMPI.jl")
 println(io0(), "="^70)
 
 # Get MPI information
@@ -44,28 +44,28 @@ println(io0(), "")
 
 # Step 2: Convert to MPI distributed types (collective)
 println(io0(), "Step 2: Converting to MPI distributed types...")
-g_hpc = native_to_hpc(g_native)
+g_mpi = native_to_mpi(g_native)
 println(io0(), "  Conversion complete")
-println(io0(), "  Type of x: $(typeof(g_hpc.x))")
-println(io0(), "  Type of w: $(typeof(g_hpc.w))")
-println(io0(), "  Type of operators: $(typeof(g_hpc.operators[:id]))")
+println(io0(), "  Type of x: $(typeof(g_mpi.x))")
+println(io0(), "  Type of w: $(typeof(g_mpi.w))")
+println(io0(), "  Type of operators: $(typeof(g_mpi.operators[:id]))")
 println(io0(), "")
 
 # Step 3: Solve with MPI types (collective)
 println(io0(), "Step 3: Solving with MPI distributed types...")
-sol_hpc = amgb(g_hpc; p=1.0, verbose=true)
+sol_mpi = amgb(g_mpi; p=1.0, verbose=true)
 println(io0(), "  Solution obtained")
 println(io0(), "")
 
 # Step 4: Convert geometry back to native (collective)
 println(io0(), "Step 4: Converting geometry back to native types...")
-g_back = hpc_to_native(g_hpc)
+g_back = mpi_to_native(g_mpi)
 println(io0(), "  Geometry conversion complete")
 println(io0(), "")
 
 # Step 5: Convert solution to native (collective)
 println(io0(), "Step 5: Converting solution to native types...")
-sol_native = hpc_to_native(sol_hpc)
+sol_native = mpi_to_native(sol_mpi)
 println(io0(), "  Solution conversion complete")
 println(io0(), "")
 

@@ -4,13 +4,13 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 using SparseArrays
 import Statistics: mean, median
 
-HPCMultiGridBarrier.Init()
+MultiGridBarrierMPI.Init()
 
 println("="^70)
 println("Linear solver scaling: L=5 vs L=6")
@@ -23,11 +23,11 @@ for L in [5, 6]
     println("L = $L")
     println("="^70)
 
-    g_hpc = fem2d_hpc(Float64; L=L)
-    x_hpc = g_hpc.x
-    w_hpc = g_hpc.w
-    x_native = x_hpc.A
-    w_native = w_hpc.v
+    g_mpi = fem2d_mpi(Float64; L=L)
+    x_mpi = g_mpi.x
+    w_mpi = g_mpi.w
+    x_native = x_mpi.A
+    w_native = w_mpi.v
 
     n = size(x_native, 1)
     println("Grid points: $n")
@@ -38,13 +38,13 @@ for L in [5, 6]
     Dy_native = g_native.operators[:dy]
     A_native = Dx_native' * Dx_native + Dy_native' * Dy_native + sparse(I, n, n)  # Add I for stability
 
-    Dx_hpc = g_hpc.operators[:dx]
-    Dy_mpi = g_hpc.operators[:dy]
-    I_mpi = g_hpc.operators[:id]
-    A_mpi = Dx_hpc' * Dx_hpc + Dy_mpi' * Dy_mpi + I_mpi
+    Dx_mpi = g_mpi.operators[:dx]
+    Dy_mpi = g_mpi.operators[:dy]
+    I_mpi = g_mpi.operators[:id]
+    A_mpi = Dx_mpi' * Dx_mpi + Dy_mpi' * Dy_mpi + I_mpi
 
     b_native = ones(n)
-    b_mpi = HPCSparseArrays.HPCVector(b_native; partition=w_hpc.partition)
+    b_mpi = HPCLinearAlgebra.HPCVector(b_native; partition=w_mpi.partition)
 
     # Native solve
     println("\nNative linear solve (sparse \\):")

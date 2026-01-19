@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -25,11 +25,11 @@ println(io0(), "[DEBUG] Testing with smaller problem (L=2)")
 println(io0(), "[DEBUG] Trying L=2...")
 
 try
-    sol2 = fem1d_hpc_solve(Float64; L=2, p=1.0, verbose=false)
+    sol2 = fem1d_mpi_solve(Float64; L=2, p=1.0, verbose=false)
     println(io0(), "[DEBUG] L=2 succeeded!")
 
     # Convert to native
-    sol2_native = hpc_to_native(sol2)
+    sol2_native = mpi_to_native(sol2)
     println(io0(), "[DEBUG] Solution z norm: $(norm(sol2_native.z))")
 
     # Compare with native solve

@@ -4,12 +4,12 @@ using MPI
 MPI.Init()
 
 using MultiGridBarrier
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 using LinearAlgebra
 import Statistics: mean, median
 
-HPCMultiGridBarrier.Init()
+MultiGridBarrierMPI.Init()
 
 const L = 5  # Use L=5 for faster testing
 
@@ -18,10 +18,10 @@ println("Profile solve phase at L=$L")
 println("="^70)
 
 # Create geometry
-g_hpc = fem2d_hpc(Float64; L=L)
+g_mpi = fem2d_mpi(Float64; L=L)
 g_native = fem2d(Float64; L=L)
 
-println("Grid points: ", sum(g_hpc.x.row_partition) - 2)
+println("Grid points: ", sum(g_mpi.x.row_partition) - 2)
 
 # Time the barrier solve
 println("\n--- Timing barrier solve ---")
@@ -34,7 +34,7 @@ println("Native solve: $(round(t_native, digits=3))s")
 
 # MPI
 t_mpi = time_ns()
-sol_hpc = MultiGridBarrier.amgb(g_hpc; verbose=false, tol=0.1)
+sol_mpi = MultiGridBarrier.amgb(g_mpi; verbose=false, tol=0.1)
 t_mpi = (time_ns() - t_mpi) / 1e9
 println("MPI solve:    $(round(t_mpi, digits=3))s")
 
@@ -44,14 +44,14 @@ println("Ratio: $(round(t_mpi / t_native, digits=2))x")
 println("\n--- Profile individual operations ---")
 
 # Get the basic data structures
-x_hpc = g_hpc.x
-w_hpc = g_hpc.w
-x_native = x_hpc.A
-w_native = w_hpc.v
+x_mpi = g_mpi.x
+w_mpi = g_mpi.w
+x_native = x_mpi.A
+w_native = w_mpi.v
 
 # Create a test vector like u
 u_test_native = ones(length(w_native))
-u_test_mpi = HPCSparseArrays.HPCVector(u_test_native; partition=w_hpc.partition)
+u_test_mpi = HPCLinearAlgebra.HPCVector(u_test_native; partition=w_mpi.partition)
 
 N_ITER = 10
 
@@ -82,7 +82,7 @@ end
 mpi_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = HPCSparseArrays.map_rows(f_scalar3, x_hpc, w_hpc, u_test_mpi)
+    result = HPCLinearAlgebra.map_rows(f_scalar3, x_mpi, w_mpi, u_test_mpi)
     t = time_ns() - t
     push!(mpi_times, t)
 end
@@ -109,7 +109,7 @@ end
 mpi_rv_times = Float64[]
 for _ in 1:N_ITER
     t = time_ns()
-    result = HPCSparseArrays.map_rows(f_rowvec, x_hpc, w_hpc, u_test_mpi)
+    result = HPCLinearAlgebra.map_rows(f_rowvec, x_mpi, w_mpi, u_test_mpi)
     t = time_ns() - t
     push!(mpi_rv_times, t)
 end
@@ -122,7 +122,7 @@ println("  Ratio:  $(round(median(mpi_rv_times) / median(native_rv_times), digit
 println("\nMatrix-vector product (matvec):")
 # Create a sparse matrix like the Hessian
 A_native = g_native.A
-A_mpi = g_hpc.A
+A_mpi = g_mpi.A
 
 native_mv_times = Float64[]
 for _ in 1:N_ITER

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 #
-# Benchmark: MultiGridBarrier.jl (Native) vs HPCMultiGridBarrier
+# Benchmark: MultiGridBarrier.jl (Native) vs MultiGridBarrierMPI
 #
 # Runs fem2d_solve for L = 1:8
 #
@@ -22,7 +22,7 @@ io0(args...) = rank == 0 && println(args...)
 
 io0("Loading packages...")
 using MultiGridBarrier
-using HPCMultiGridBarrier
+using MultiGridBarrierMPI
 using BenchmarkTools
 using Dates
 using LinearAlgebra
@@ -59,8 +59,8 @@ for L in 1:8
         native_time = MPI.Bcast(native_time, 0, comm)
 
         io0("  Benchmarking MPI...")
-        mpi_sol = fem2d_hpc_solve(Float64; L=L, verbose=false)
-        b = @benchmark fem2d_hpc_solve(Float64; L=$L, verbose=false)
+        mpi_sol = fem2d_mpi_solve(Float64; L=L, verbose=false)
+        b = @benchmark fem2d_mpi_solve(Float64; L=$L, verbose=false)
         mpi_time = median(b.times) / 1e9
     else
         # Single run for larger problems
@@ -74,7 +74,7 @@ for L in 1:8
 
         io0("  Running MPI...")
         mpi_time = @elapsed begin
-            mpi_sol = fem2d_hpc_solve(Float64; L=L, verbose=false)
+            mpi_sol = fem2d_mpi_solve(Float64; L=L, verbose=false)
         end
     end
 
@@ -84,7 +84,7 @@ for L in 1:8
     # Compute sup norm of difference (on rank 0)
     sup_diff = 0.0
     if rank == 0
-        mpi_native = hpc_to_native(mpi_sol)
+        mpi_native = mpi_to_native(mpi_sol)
         sup_diff = norm(native_sol.z - mpi_native.z, Inf)
     end
 

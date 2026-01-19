@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -99,12 +99,12 @@ end
 MultiGridBarrier.solve(A::HPCSparseMatrix{T}, b::HPCVector{T}) where {T} = instrumented_solve(A, b)
 
 # Now run the actual solve
-println(io0(), "[DEBUG] Starting fem1d_hpc_solve...")
+println(io0(), "[DEBUG] Starting fem1d_mpi_solve...")
 
 try
-    sol = fem1d_hpc_solve(Float64; L=2, p=1.0, verbose=false)
+    sol = fem1d_mpi_solve(Float64; L=2, p=1.0, verbose=false)
     println(io0(), "[DEBUG] Solve succeeded!")
-    sol_native = hpc_to_native(sol)
+    sol_native = mpi_to_native(sol)
     println(io0(), "[DEBUG] Solution z norm: $(norm(sol_native.z))")
 catch e
     println(io0(), "[DEBUG] Solve FAILED: $e")

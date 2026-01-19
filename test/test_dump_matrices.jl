@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -22,7 +22,7 @@ nranks = MPI.Comm_size(comm)
 println(io0(), "[DEBUG] Dumping matrices that trigger the bug (nranks=$nranks)")
 
 # Create geometry - same as the failing test
-g = fem1d_hpc(Float64; L=2)
+g = fem1d_mpi(Float64; L=2)
 
 # Get D operators
 D_op = [g.operators[:dx], g.operators[:id]]
@@ -36,19 +36,19 @@ y_vals[:, 3] = ones(n) .* 0.1
 y_vals[:, 4] = ones(n) .* 0.3
 
 y_mpi = HPCMatrix(y_vals)
-w_hpc = g.w
+w_mpi = g.w
 
 # Build up to the failing point
-foo = MultiGridBarrier.amgb_diag(D_op[1], w_hpc .* y_mpi[:, 1])
+foo = MultiGridBarrier.amgb_diag(D_op[1], w_mpi .* y_mpi[:, 1])
 bar = D_op[1]' * foo * D_op[1]
 ret_mpi = bar
 
-foo = MultiGridBarrier.amgb_diag(D_op[1], w_hpc .* y_mpi[:, 4])
+foo = MultiGridBarrier.amgb_diag(D_op[1], w_mpi .* y_mpi[:, 4])
 bar = D_op[2]' * foo * D_op[2]
 ret_mpi = ret_mpi + bar
 
 # Now compute the cross term matrices - these are the ones that fail when added
-foo = MultiGridBarrier.amgb_diag(D_op[1], w_hpc .* y_mpi[:, 3])
+foo = MultiGridBarrier.amgb_diag(D_op[1], w_mpi .* y_mpi[:, 3])
 
 # These two matrices, when added, cause the BoundsError
 M1 = D_op[2]' * foo * D_op[1]  # id' * foo * dx

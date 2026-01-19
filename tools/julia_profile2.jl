@@ -5,10 +5,10 @@ MPI.Init()
 
 using Profile
 using MultiGridBarrier
-using HPCMultiGridBarrier
-using HPCSparseArrays
+using MultiGridBarrierMPI
+using HPCLinearAlgebra
 
-HPCMultiGridBarrier.Init()
+MultiGridBarrierMPI.Init()
 
 const L = 6
 
@@ -17,17 +17,17 @@ println("Julia profiling at L=$L (tree view)")
 println("="^70)
 
 # Create geometry
-g_hpc = fem2d_hpc(Float64; L=L)
-println("Grid points: ", sum(g_hpc.x.row_partition) - 2)
+g_mpi = fem2d_mpi(Float64; L=L)
+println("Grid points: ", sum(g_mpi.x.row_partition) - 2)
 
 # Warmup
 println("Warmup...")
-MultiGridBarrier.amgb(g_hpc; verbose=false, tol=0.1)
+MultiGridBarrier.amgb(g_mpi; verbose=false, tol=0.1)
 
 # Profile the solve
 println("Profiling MPI solve...")
 Profile.clear()
-@profile MultiGridBarrier.amgb(g_hpc; verbose=false, tol=0.1)
+@profile MultiGridBarrier.amgb(g_mpi; verbose=false, tol=0.1)
 
 # Print tree view (collapsed)
 println("\nTree view (mincount=200):")

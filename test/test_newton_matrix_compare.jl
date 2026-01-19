@@ -6,11 +6,11 @@ if !MPI.Initialized()
     MPI.Init()
 end
 
-using HPCMultiGridBarrier
-HPCMultiGridBarrier.Init()
+using MultiGridBarrierMPI
+MultiGridBarrierMPI.Init()
 
-using HPCSparseArrays
-using HPCSparseArrays: HPCVector, HPCMatrix, HPCSparseMatrix, io0
+using HPCLinearAlgebra
+using HPCLinearAlgebra: HPCVector, HPCMatrix, HPCSparseMatrix, io0
 using LinearAlgebra
 using SparseArrays
 using MultiGridBarrier
@@ -54,7 +54,7 @@ println(io0(), "[DEBUG] Running MPI solve...")
 
 # Run MPI solver and capture matrices
 try
-    sol_hpc = fem1d_hpc_solve(Float64; L=2, p=1.0, verbose=false)
+    sol_mpi = fem1d_mpi_solve(Float64; L=2, p=1.0, verbose=false)
     println(io0(), "[DEBUG] MPI solve succeeded with $(mpi_solve_count[]) iterations")
 catch e
     println(io0(), "[DEBUG] MPI solve failed after $(mpi_solve_count[]) iterations: $e")
@@ -93,9 +93,9 @@ if rank == 0
                     println("[DEBUG] Matrix difference (Frobenius): $diff")
 
                     # Check diagonal
-                    diag_hpc = diag(A_mpi)
+                    diag_mpi = diag(A_mpi)
                     diag_native = diag(A_native)
-                    diag_diff = norm(diag_hpc - diag_native)
+                    diag_diff = norm(diag_mpi - diag_native)
                     println("[DEBUG] Diagonal difference: $diag_diff")
 
                     # Show where differences are

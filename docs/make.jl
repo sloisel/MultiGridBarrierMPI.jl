@@ -1,18 +1,18 @@
 using Documenter
-using HPCMultiGridBarrier
+using MultiGridBarrierMPI
 using Pkg
 
 # Compute version dynamically
-version = string(pkgversion(HPCMultiGridBarrier))
+version = string(pkgversion(MultiGridBarrierMPI))
 
 makedocs(;
-    modules=[HPCMultiGridBarrier],
+    modules=[MultiGridBarrierMPI],
     authors="Sebastien Loisel and contributors",
-    sitename="HPCMultiGridBarrier.jl $version",
+    sitename="MultiGridBarrierMPI.jl $version",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://sloisel.github.io/HPCMultiGridBarrier.jl",
-        repolink="https://github.com/sloisel/HPCMultiGridBarrier.jl",
+        canonical="https://sloisel.github.io/MultiGridBarrierMPI.jl",
+        repolink="https://github.com/sloisel/MultiGridBarrierMPI.jl",
         assets=String[],
     ),
     pages=[
@@ -21,11 +21,11 @@ makedocs(;
         "User Guide" => "guide.md",
         "API Reference" => "api.md",
     ],
-    repo=Documenter.Remotes.GitHub("sloisel", "HPCMultiGridBarrier.jl"),
+    repo=Documenter.Remotes.GitHub("sloisel", "MultiGridBarrierMPI.jl"),
     warnonly=true,  # Don't fail on warnings during development
 )
 
 deploydocs(;
-    repo="github.com/sloisel/HPCMultiGridBarrier.jl",
+    repo="github.com/sloisel/MultiGridBarrierMPI.jl",
     devbranch="main",
 )
